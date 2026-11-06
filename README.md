@@ -11,7 +11,7 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 ## Ekonomi
 - Yıldızlar hem ilerleme hem para birimi. Bir seviyede sadece önceki en iyi sonuca göre fark kazanılır.
 - İpucu: günde 3 ücretsiz, sonrası 2 ★.
-- Hamle limiti dolunca: baştan başla ya da "Bu imkânsız". 16. seviyeden itibaren ayrıca +5 hamle (3 ★) satın alınabilir.
+- Hamle limiti dolunca: baştan başla ya da "Bu imkânsız". 14. seviyeden (üretilen bulmacaların başından) itibaren ayrıca +5 hamle (3 ★) satın alınabilir.
 - Son hamleye gelince uyarı çıkar. Yanlış "Bu imkânsız" tespiti "Çözümü var" kartı açar, 1 hamle sayılır ve o seviyeyi kalıcı olarak en fazla 2 yıldıza düşürür; buton o seviyede bir daha görünmez.
 - İmkânsız seviyede ipucu cevabı söylemez, hacimlerin ortak bölenine dikkat çeker. İpucudan sonra doğru tespit 1 yıldız verir.
 - Seviye sonu kartı yıldızın neden kısıldığını yazar (ipucu, yanlış tespit, joker).

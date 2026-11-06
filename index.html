@@ -335,7 +335,7 @@ try{ const s = JSON.parse(localStorage.getItem("kova-save")||"null"); if(s && ty
 function persist(){ try{ localStorage.setItem("kova-save", JSON.stringify(save)); }catch(e){} }
 function earned(){ let n=0; for(const P of [save,save.oil,save.tas,save.eco]) for(const k in P.stars) n+=P.stars[k]; return n; }
 const UNLOCK={su:0,yag:15,tas:25,eco:35};
-const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10, MOVES_FROM=15;
+const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10, MOVES_FROM=13;
 const GOALS=[
   {need:MEASURE_UNLOCK,name:"Ölçülü döküm jokeri",desc:"Artık bir kovadan diğerine tam 1 litre aktarabilirsin. Bedeli 5 ★, seviye başına bir kez; kullanırsan o seviyeden en fazla 1 yıldız alırsın."},
   {need:UNLOCK.yag,name:"Su ve yağ dünyası",w:"yag",desc:"Yağ suyun üstünde durur ve dökerken önce o akar. 10 yeni bulmaca."},
