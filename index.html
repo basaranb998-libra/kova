@@ -72,7 +72,7 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .goal{background:var(--cobalt);color:var(--surface);border-radius:14px;padding:6px 12px;text-align:center;line-height:1.05;flex:none}
 .goal b{display:block;font-size:1.5rem}
 .goal span{font-size:.75rem}
-.hud{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:10px;padding:7px 12px;border-radius:12px;background:var(--surface);border:2px solid var(--tile);font-size:.92rem;line-height:1.25}
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:0 0 10px;padding:7px 12px;border-radius:12px;background:var(--surface);border:2px solid var(--tile);font-size:.92rem;line-height:1.25}
 .hudbtn{border:none;background:none;padding:0;flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;text-align:left}
 .hudbtn b{color:var(--gold);font-size:1.15rem;font-weight:800;white-space:nowrap}
 .hudbtn span,.hudnext{color:var(--muted)}
@@ -180,15 +180,15 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
   </section>
 
   <section class="screen" id="game">
-    <div class="top">
-      <button class="icon" id="back" aria-label="Seviyelere dön">☰</button>
-      <div class="title"><b id="lvTitle">Seviye 1</b><span id="moves">0 hamle</span></div>
-      <div class="goal"><b id="goal">2 L</b><span id="goalSub">herhangi bir kovada</span></div>
-    </div>
     <div class="hud">
       <button class="hudbtn" id="hudWallet" aria-label="Yıldız mağazasını aç"></button>
       <span class="lvstars" id="hudLv"></span>
       <span class="hudnext" id="hudNext"></span>
+    </div>
+    <div class="top">
+      <button class="icon" id="back" aria-label="Seviyelere dön">☰</button>
+      <div class="title"><b id="lvTitle">Seviye 1</b><span id="moves">0 hamle</span></div>
+      <div class="goal"><b id="goal">2 L</b><span id="goalSub">herhangi bir kovada</span></div>
     </div>
     <p class="intro" id="intro"></p>
     <div class="stage" id="stage"></div>
@@ -225,6 +225,18 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
     <p id="shopNote"></p>
     <div class="packs" id="packs"></div>
     <div class="row"><button class="btn" id="closeShop">Kapat</button></div>
+  </div>
+</div>
+
+<div class="ov" id="ov4">
+  <div class="card">
+    <h2 id="ov4Title">Yeni dünya açıldı!</h2>
+    <div class="stars">🎉</div>
+    <p id="ov4Text"></p>
+    <div class="row">
+      <button class="btn" id="ov4Later">Sonra</button>
+      <button class="btn main" id="ov4Go">Hemen git</button>
+    </div>
   </div>
 </div>
 
@@ -325,7 +337,13 @@ function persist(){ try{ localStorage.setItem("kova-save", JSON.stringify(save))
 function earned(){ let n=0; for(const P of [save,save.oil,save.tas,save.eco]) for(const k in P.stars) n+=P.stars[k]; return n; }
 const UNLOCK={su:0,yag:15,tas:25,eco:35};
 const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10, MOVES_FROM=15;
-const GOALS=[{need:MEASURE_UNLOCK,name:"Ölçülü döküm jokeri"},{need:UNLOCK.yag,name:"Su ve yağ dünyası"},{need:UNLOCK.tas,name:"Taş dünyası"},{need:UNLOCK.eco,name:"Tasarruf dünyası"}];
+const GOALS=[
+  {need:MEASURE_UNLOCK,name:"Ölçülü döküm jokeri",desc:"Artık bir kovadan diğerine tam 1 litre aktarabilirsin. Bedeli 5 ★, seviye başına bir kez; kullanırsan o seviyeden en fazla 1 yıldız alırsın."},
+  {need:UNLOCK.yag,name:"Su ve yağ dünyası",w:"yag",desc:"Yağ suyun üstünde durur ve dökerken önce o akar. 10 yeni bulmaca."},
+  {need:UNLOCK.tas,name:"Taş dünyası",w:"tas",desc:"Taş yer kaplar: kovaya koyunca su yükselir, dolu kovada fazlası taşar. 5 yeni bulmaca."},
+  {need:UNLOCK.eco,name:"Tasarruf dünyası",w:"eco",desc:"Lavabo yok, su dökmek yasak, depodaki su sınırlı. En az suyla ölç. 8 yeni bulmaca."}
+];
+let pendingUnlock=[];
 function nextUnlock(e){ return GOALS.find(g=>e<g.need)||null; }
 function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
 function freeHints(){ if(!save.hints || save.hints.day!==today()) save.hints={day:today(),left:HINT_FREE+(save.noads?2:0)}; return save.hints.left; }
@@ -805,8 +823,7 @@ function finish(impossible){
   if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
   if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
   P.unlocked=Math.max(P.unlocked,li+1);
-  const opened=GOALS.filter(g=>before<g.need && earned()>=g.need).map(g=>g.name);
-  if(opened.length) text+=` Yeni açıldı: ${joinTr(opened)}!`;
+  pendingUnlock=GOALS.filter(g=>before<g.need && earned()>=g.need);
   persist();
   $("ovStars").innerHTML="★".repeat(stars)+`<span class="off">${"★".repeat(3-stars)}</span>`;
   const gained=Math.max(0,stars-prev);
@@ -818,9 +835,20 @@ function finish(impossible){
   $("ovRetry").hidden = stars>=3;
   $("ov").classList.add("on");
 }
-$("ovRetry").onclick=()=>{ $("ov").classList.remove("on"); start(li); };
-$("ovNext").onclick=()=>{ $("ov").classList.remove("on"); if(li>=WORLD_LEN[world]-1){ renderMenu(); show("menu"); } else start(li+1); };
-$("ovMenu").onclick=()=>{ $("ov").classList.remove("on"); renderMenu(); show("menu"); };
+$("ovRetry").onclick=()=>afterFinish(()=>start(li));
+function afterFinish(fn){
+  $("ov").classList.remove("on");
+  if(!pendingUnlock.length){ fn(); return; }
+  const g=pendingUnlock.shift(); pendingUnlock=[];
+  $("ov4Title").textContent = g.w ? "Yeni dünya açıldı!" : "Yeni joker açıldı!";
+  $("ov4Text").textContent = `${g.name} açıldı: toplam ${g.need} yıldıza ulaştın. ${g.desc}`;
+  $("ov4Go").hidden = !g.w; $("ov4Later").textContent = g.w ? "Sonra" : "Tamam";
+  $("ov4Later").onclick=()=>{ $("ov4").classList.remove("on"); fn(); };
+  $("ov4Go").onclick=()=>{ $("ov4").classList.remove("on"); world=g.w; page=null; renderMenu(); show("menu"); };
+  $("ov4").classList.add("on");
+}
+$("ovNext").onclick=()=>afterFinish(()=>{ if(li>=WORLD_LEN[world]-1){ renderMenu(); show("menu"); } else start(li+1); });
+$("ovMenu").onclick=()=>afterFinish(()=>{ renderMenu(); show("menu"); });
 window.addEventListener("resize",()=>{ if($("game").classList.contains("on")){ buildStage(); update(); } });
 
 renderMenu();
