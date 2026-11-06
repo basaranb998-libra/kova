@@ -239,6 +239,17 @@ button.goal{border:none;min-width:78px;padding:10px 14px}
   </div>
 </div>
 
+<div class="ov" id="ovReset">
+  <div class="card">
+    <h2>Baştan mı?</h2>
+    <p id="ovResetText"></p>
+    <div class="row">
+      <button class="btn" id="resetNo">Vazgeç</button>
+      <button class="btn main" id="resetYes">Tahtayı sıfırla</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="ov4">
   <div class="card">
     <h2 id="ov4Title">Yeni dünya açıldı!</h2>
@@ -722,7 +733,15 @@ $("measure").onclick=()=>{
 function emptyB(i){ apply(()=>{ state.b[i]=[0,0]; },`${L.caps[i]} litrelik kova lavaboya boşaltıldı.`); }
 $("undo").onclick=()=>{ if(!history.length) return; if(limit && moves>=limit){ outOfMoves(); return; } state=history.pop(); spendMove(); sel=-1; selStone=-1; say("Son hamle geri alındı. Geri almak da hamle sayılır."); update(); };
 function restart(){ const m=moves; start(li); if(limit) say(`Tahta sıfırlandı. Hamle sayacı devam ediyor: ${m} / ${limit}.`); }
-$("reset").onclick=restart;
+$("reset").onclick=()=>{
+  if(!history.length && (!limit || moves===0)){ restart(); return; }
+  $("ovResetText").textContent = limit
+    ? `Kovalar başlangıç durumuna döner. Hamle sayacı sıfırlanmaz, ${moves} / ${limit} olarak kaldığı yerden devam eder. “Geri al”dan farkı: bu işlem hamle harcamaz.`
+    : "Kovalar başlangıç durumuna döner, hamle sayacı sıfırlanır. Bu seviyede hamle sınırı yok.";
+  $("ovReset").classList.add("on");
+};
+$("resetNo").onclick=()=>$("ovReset").classList.remove("on");
+$("resetYes").onclick=()=>{ $("ovReset").classList.remove("on"); restart(); };
 $("back").onclick=()=>{ renderMenu(); show("menu"); };
 $("hint").onclick=()=>{
   if(freeHints()>0) save.hints.left--;
