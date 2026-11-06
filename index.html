@@ -78,7 +78,7 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .goalline span{color:var(--muted);font-size:.95rem}
 .lvstars{color:var(--gold);letter-spacing:2px;font-size:1.1rem;white-space:nowrap}
 .lvstars .off{color:var(--metal)}
-button.goal{border:none;min-width:78px}
+button.goal{border:none;min-width:78px;padding:10px 14px}
 .goal.on{outline:3px solid var(--gold)}
 .intro{margin:14px 0 0;background:var(--surface);border-left:4px solid var(--water);border-radius:10px;padding:10px 12px;font-size:1rem;line-height:1.35}
 .intro:empty{display:none}
@@ -623,7 +623,7 @@ function update(){
 function say(t){ $("msg").textContent=t; $("msg").classList.remove("warn"); }
 function renderHud(){
   const cur=prog().stars[li]||0;
-  $("hudWallet").innerHTML=`<b>★ ${save.coins}</b><span>harcanabilir</span>`;
+  $("hudWallet").innerHTML=`<b>★ ${save.coins}</b>`;
   $("hudWallet").setAttribute("aria-label",`${save.coins} harcanabilir yıldızın var, toplam ${earned()} kazandın. Yıldız mağazasını aç`);
   $("hudLv").innerHTML=`${"★".repeat(cur)}<span class="off">${"★".repeat(3-cur)}</span>`;
   $("hudLv").setAttribute("aria-label",`Bu seviyede ${cur} yıldızın var`);
