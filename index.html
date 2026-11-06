@@ -269,9 +269,9 @@ button.goal{border:none;min-width:78px;padding:10px 14px}
     <h2>Hamlen bitti</h2>
     <p id="ov2Text"></p>
     <div class="row">
+      <button class="btn main" id="adMoves">Reklam izle, hakkı yenile</button>
       <button class="btn main" id="buyMoves">+5 hamle (3 ★)</button>
       <button class="btn red" id="imp2">Bu imkânsız</button>
-      <button class="btn" id="restart2">Baştan başla</button>
       <button class="btn" id="menu2">Seviyeler</button>
       <button class="btn" id="shop2">Yıldız al</button>
     </div>
@@ -538,7 +538,8 @@ function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.t
 
 /* ---------- game ---------- */
 function start(i){
-  li=i; L=getLevel(world,i); state=clone(L.start2); history=[]; sel=-1; selStone=-1; moves=0; hintUsed=false; hintImp=false; wrongImp=!!(prog().wrong&&prog().wrong[i]); limit=limitFor(world,i); spent=0; measureMode=false; itemUsed=false;
+  li=i; L=getLevel(world,i); state=clone(L.start2); history=[]; sel=-1; selStone=-1; hintUsed=false; hintImp=false; wrongImp=!!(prog().wrong&&prog().wrong[i]); limit=limitFor(world,i);
+  { const P=prog(); moves = limit ? ((P.used&&P.used[i])||0) : 0; if(limit && P.extra && P.extra[i]) limit+=P.extra[i]; } spent=0; measureMode=false; itemUsed=false;
   $("lvTitle").textContent = world==="yag" ? `Su ve yağ ${i+1}` : world==="tas" ? `Taş ${i+1}` : world==="eco" ? `Tasarruf ${i+1}` : `Seviye ${i+1}`;
   if(L.oil){
     $("goal").textContent = L.go===0 ? `${L.gw} L su` : `${L.gw} su + ${L.go} yağ`;
@@ -546,7 +547,8 @@ function start(i){
   } else { $("goal").textContent=`${L.target} L`; $("goalSub").textContent="herhangi bir kovada"; }
   $("intro").textContent=L.intro||"";
   $("imp").hidden = world!=="su" || i<IMP_FROM || wrongImp;
-  buildStage(); say(toolsText()); update(); show("game");
+  buildStage(); say(toolsText() + (limit && moves>0 ? ` Bu seviyede ${moves} hamle harcadın; sayaç kaldığı yerden devam ediyor.` : "")); update(); show("game");
+  if(limit && moves>=limit) setTimeout(outOfMoves,300);
 }
 function toolsText(){
   if(L.tap&&L.sink) return "Musluk ve lavabo serbest.";
@@ -697,9 +699,11 @@ function pourFx(from,to,oil){
   const len=path.getTotalLength(); path.style.strokeDasharray=len; path.style.strokeDashoffset=len;
   path.animate([{strokeDashoffset:len,opacity:.95},{strokeDashoffset:0,opacity:.95,offset:.55},{strokeDashoffset:-len*.4,opacity:0}],{duration:520,easing:"ease-out"}).onfinish=()=>path.remove();
 }
+function spendMove(){ moves++; if(limit){ const P=prog(); (P.used||(P.used={}))[li]=moves; persist(); } }
+function ads(){ if(!save.ads || save.ads.day!==today()) save.ads={day:today(),left:5}; return save.ads; }
 function apply(fn,text){
   if(limit && moves>=limit){ outOfMoves(); return; }
-  history.push(clone(state)); fn(); moves++; sel=-1; selStone=-1; say(text); lastMoveWarn(); update(); check();
+  history.push(clone(state)); fn(); spendMove(); sel=-1; selStone=-1; say(text); lastMoveWarn(); update(); check();
 }
 function lastMoveWarn(){
   if(!(limit && moves===limit-1) || goal(state,L)) return;
@@ -716,8 +720,9 @@ $("measure").onclick=()=>{
   measureMode=true; sel=-1; selStone=-1; say(`Ölçülü dök: kaynak kovaya, sonra hedef kovaya dokun, tam 1 litre geçer. ${MEASURE_COST} ★ döküm anında düşer; bu seviyeden en fazla 1 yıldız alırsın.`); update();
 };
 function emptyB(i){ apply(()=>{ state.b[i]=[0,0]; },`${L.caps[i]} litrelik kova lavaboya boşaltıldı.`); }
-$("undo").onclick=()=>{ if(!history.length) return; if(limit && moves>=limit){ outOfMoves(); return; } state=history.pop(); moves++; sel=-1; selStone=-1; say("Son hamle geri alındı. Geri almak da hamle sayılır."); update(); };
-$("reset").onclick=()=>start(li);
+$("undo").onclick=()=>{ if(!history.length) return; if(limit && moves>=limit){ outOfMoves(); return; } state=history.pop(); spendMove(); sel=-1; selStone=-1; say("Son hamle geri alındı. Geri almak da hamle sayılır."); update(); };
+function restart(){ const m=moves; start(li); if(limit) say(`Tahta sıfırlandı. Hamle sayacı devam ediyor: ${m} / ${limit}.`); }
+$("reset").onclick=restart;
 $("back").onclick=()=>{ renderMenu(); show("menu"); };
 $("hint").onclick=()=>{
   if(freeHints()>0) save.hints.left--;
@@ -746,19 +751,19 @@ $("imp").onclick=()=>{
   else {
     const P=prog(); (P.wrong||(P.wrong={}))[li]=true; persist();
     wrongImp=true; sel=-1; selStone=-1;
-    if(!limit || moves<limit) moves++;
+    if(!limit || moves<limit) spendMove();
     const out = limit && moves>=limit, sell = world==="su" && li>=MOVES_FROM;
     $("imp").hidden=true; say("Bu bulmacanın çözümü var."); update();
     $("ov3Text").textContent = out
-      ? "Kusura bakma, bu bulmacanın çözümü var. Yanlış tespit bu seviyeyi en fazla 2 yıldıza düşürdü, hamlen de bitti. Baştan başlayıp çözümü ara."
+      ? "Kusura bakma, bu bulmacanın çözümü var. Yanlış tespit bu seviyeyi en fazla 2 yıldıza düşürdü, hamle hakkın da bitti."
       : `Kusura bakma, bu bulmacanın çözümü var. Yanlış tespit 1 hamle saydı ve bu seviyeden en fazla 2 yıldız alabilirsin. ${limit ? `${limit-moves} hamlen kaldı, ` : ""}denemeye devam et.`;
-    $("goOn").hidden = out; $("buyMoves3").hidden = !(out && sell); $("buyMoves3").disabled = save.coins<MOVE_COST;
+    $("goOn").textContent = out ? "Tamam" : "Denemeye devam"; $("restart3").hidden = out; $("buyMoves3").hidden = true;
     $("ov2").classList.remove("on"); $("ov3").classList.add("on");
   }
 };
-$("goOn").onclick=()=>{ $("ov3").classList.remove("on"); lastMoveWarn(); };
+$("goOn").onclick=()=>{ $("ov3").classList.remove("on"); if(limit && moves>=limit) outOfMoves(); else lastMoveWarn(); };
 $("buyMoves3").onclick=()=>{ $("ov3").classList.remove("on"); buyMoves(); };
-$("restart3").onclick=()=>{ $("ov3").classList.remove("on"); start(li); };
+$("restart3").onclick=()=>{ $("ov3").classList.remove("on"); restart(); };
 $("menu3").onclick=()=>{ $("ov3").classList.remove("on"); renderMenu(); show("menu"); };
 
 function check(){
@@ -767,20 +772,25 @@ function check(){
   else if(world!=="su" && !solve(state,L)) setTimeout(()=>say("Bu durumdan hedefe giden yol kalmadı. Geri al ya da baştan başla."),0);
 }
 function outOfMoves(){
-  const can = save.coins>=MOVE_COST, sell = world==="su" && li>=MOVES_FROM;
+  const can = save.coins>=MOVE_COST, sell = world==="su" && li>=MOVES_FROM, left=ads().left;
   $("buyMoves").hidden = !sell; $("shop2").hidden = !sell;
-  $("ov2Text").textContent = !sell
-    ? `${limit} hamlelik limit doldu. Baştan başla${$("imp").hidden ? "." : " ya da çözümü yok diyorsan “Bu imkânsız” de."}`
-    : `${limit} hamlelik limit doldu. ${MOVE_COST} yıldıza ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilirsin. `+
-      (can ? `Yıldızın: ${save.coins}.` : `Yıldızın ${save.coins}, yetmiyor; "Yıldız al" ile mağazadan alıp buraya dönebilirsin.`);
+  const ad=$("adMoves"); ad.disabled = left<=0; ad.textContent = left>0 ? `Reklam izle, hakkı yenile (${left})` : "Bugünlük reklam hakkı bitti";
+  $("ov2Text").textContent = `${limit} hamlelik hak doldu. Baştan başlamak sayacı sıfırlamaz. Reklam izleyerek hakkı yenileyebilir`
+    + (sell ? `, ${MOVE_COST} yıldıza ${MOVE_PACK} hamle alabilir` : "")
+    + ($("imp").hidden ? "" : ", çözümü yok diyorsan “Bu imkânsız” diyebilir")
+    + " ya da başka bir seviyeye geçebilirsin." + (sell ? ` Yıldızın: ${save.coins}.` : "");
   $("buyMoves").disabled = !can;
   $("imp2").hidden = $("imp").hidden;
   $("ov2").classList.add("on");
 }
-function buyMoves(){ if(save.coins<MOVE_COST) return; save.coins-=MOVE_COST; spent+=MOVE_COST; limit+=MOVE_PACK; persist(); $("ov2").classList.remove("on"); say(`${MOVE_PACK} hamle eklendi.`); update(); }
+function buyMoves(){ if(save.coins<MOVE_COST) return; save.coins-=MOVE_COST; spent+=MOVE_COST; limit+=MOVE_PACK; const P=prog(); (P.extra||(P.extra={}))[li]=((P.extra[li])||0)+MOVE_PACK; persist(); $("ov2").classList.remove("on"); say(`${MOVE_PACK} hamle eklendi.`); update(); }
+$("adMoves").onclick=()=>{
+  const a=ads(); if(a.left<=0) return; const b=$("adMoves"); b.disabled=true; let t=3; b.textContent=`Reklam ${t}`;
+  const iv=setInterval(()=>{ t--; if(t>0){ b.textContent=`Reklam ${t}`; return; } clearInterval(iv); a.left--; const P=prog(); if(P.used) delete P.used[li]; if(P.extra) delete P.extra[li];
+    limit=limitFor(world,li); moves=0; spent=0; persist(); $("ov2").classList.remove("on"); say(`Hamle hakkın yenilendi: ${limit} hamle. Tahta olduğu gibi duruyor.`); update(); },1000);
+};
 $("buyMoves").onclick=buyMoves;
 $("imp2").onclick=()=>{ $("ov2").classList.remove("on"); $("imp").onclick(); };
-$("restart2").onclick=()=>{ $("ov2").classList.remove("on"); start(li); };
 $("menu2").onclick=()=>{ $("ov2").classList.remove("on"); renderMenu(); show("menu"); };
 $("shop2").onclick=()=>{ $("ov2").classList.remove("on"); renderShop(); $("shop").classList.add("on"); };
 const PACKS=[
@@ -792,7 +802,7 @@ const PACKS=[
   {name:"Usta paketi",desc:"Ömür boyu: her gün +2 ücretsiz ipucu ve reklam izlemeden +5 ★ hediye",price:"₺149,99",stars:0,noads:true,tag:"Kalıcı"}
 ];
 function renderShop(reason){
-  if(!save.ads || save.ads.day!==today()) save.ads={day:today(),left:5};
+  ads();
   const box=$("packs"); box.innerHTML="";
   if(save.noads){
     const row=document.createElement("div"); row.className="pack";
@@ -856,6 +866,7 @@ function finish(impossible){
   if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
   if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
   P.unlocked=Math.max(P.unlocked,li+1);
+  if(P.used) delete P.used[li]; if(P.extra) delete P.extra[li];
   pendingUnlock=GOALS.filter(g=>before<g.need && earned()>=g.need);
   persist();
   $("ovStars").innerHTML="★".repeat(stars)+`<span class="off">${"★".repeat(3-stars)}</span>`;
