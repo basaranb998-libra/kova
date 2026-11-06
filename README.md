@@ -26,7 +26,7 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 `index.html` dosyasını tarayıcıda açmak yeterli. İlerleme tarayıcının `localStorage`'ında tutulur.
 
 ## Test kısayolları
-`#seviye-21`, `#yag-6`, `#tas-1`, `#tasarruf-1` gibi adres sonekleri doğrudan o seviyeyi açar (yayın öncesi kaldırılmalı).
+`#seviye-21`, `#yag-6`, `#tas-1`, `#tasarruf-1` gibi adres sonekleri doğrudan o seviyeyi açar. Menünün altındaki "Test: seviyeye git" kutusu da aynı işi yapar. İkisi de yayın öncesi kaldırılmalı.
 
 ## Çözücü
 Her seviyenin en kısa çözümü tarayıcıda BFS ile hesaplanır; yıldızlar, ipuçları, imkânsızlık tespiti ve seviye üretici bu çözücüye dayanır.

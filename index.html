@@ -60,6 +60,9 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .pager{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:18px;color:var(--muted);font-weight:600;font-size:1.05rem}
 .icon[disabled]{opacity:.3;cursor:default}
 .note{color:var(--muted);text-align:center;font-size:.95rem;margin-top:auto}
+.jump{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;font-size:.85rem;color:var(--muted)}
+.jump input{width:72px;font:inherit;padding:6px 8px;margin-left:4px;border:2px solid var(--metal-edge);border-radius:10px;background:var(--surface);color:var(--ink)}
+.jump .btn{padding:6px 12px;font-size:.9rem}
 
 /* game */
 .top{display:flex;align-items:center;gap:10px}
@@ -189,6 +192,7 @@ button.goal{border:none;min-width:78px;padding:10px 14px}
     <div class="pager" id="pager"><button class="icon" id="prev" aria-label="Önceki sayfa">‹</button><span id="pageLbl"></span><button class="icon" id="next" aria-label="Sonraki sayfa">›</button></div>
     <div class="grid" id="grid"></div>
     <p class="note" id="note"></p>
+    <form class="jump" id="jump"><label>Test: seviyeye git <input type="number" min="1" id="jumpN" placeholder="56"></label><button class="btn" type="submit">Git</button></form>
   </section>
 
   <section class="screen" id="game">
@@ -915,15 +919,17 @@ $("ovMenu").onclick=()=>afterFinish(()=>{ renderMenu(); show("menu"); });
 window.addEventListener("resize",()=>{ if($("game").classList.contains("on")){ buildStage(); update(); } });
 
 renderMenu();
-function openFromHash(){
-  const m=location.hash.match(/^#(seviye|yag|tas|tasarruf)-(\d+)$/);
-  if(!m) return;
-  world = m[1]==="seviye" ? "su" : m[1]==="tasarruf" ? "eco" : m[1];
-  let n=Math.max(1,parseInt(m[2],10))-1;
-  n=Math.min(n,WORLD_LEN[world]-1);
+function openLevel(w,n1){
+  world=w; let n=Math.max(1,n1)-1; n=Math.min(n,WORLD_LEN[world]-1);
   const P=prog(); P.unlocked=Math.max(P.unlocked,n); persist();
   page=null; renderMenu(); $("ov").classList.remove("on"); start(n);
 }
+function openFromHash(){
+  const m=location.hash.match(/^#(seviye|yag|tas|tasarruf)-(\d+)$/);
+  if(!m) return;
+  openLevel(m[1]==="seviye" ? "su" : m[1]==="tasarruf" ? "eco" : m[1], parseInt(m[2],10));
+}
+$("jump").onsubmit=e=>{ e.preventDefault(); const n=parseInt($("jumpN").value,10); if(n>0) openLevel(world,n); };
 openFromHash();
 window.addEventListener("hashchange",openFromHash);
 </script>
