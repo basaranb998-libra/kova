@@ -70,6 +70,14 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .goal{background:var(--cobalt);color:var(--surface);border-radius:14px;padding:6px 12px;text-align:center;line-height:1.05;flex:none}
 .goal b{display:block;font-size:1.5rem}
 .goal span{font-size:.75rem}
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:10px;padding:7px 12px;border-radius:12px;background:var(--surface);border:2px solid var(--tile);font-size:.92rem;line-height:1.25}
+.hudbtn{border:none;background:none;padding:0;flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;text-align:left}
+.hudbtn b{color:var(--gold);font-size:1.15rem;font-weight:800;white-space:nowrap}
+.hudbtn span,.hudnext{color:var(--muted)}
+.lvstars{color:var(--gold);letter-spacing:2px;font-size:1.05rem;white-space:nowrap}
+.lvstars .off{color:var(--metal)}
+.hudnext{flex-basis:100%}
+.hudnext em{font-style:normal;font-weight:700;color:var(--cobalt)}
 .intro{margin:14px 0 0;background:var(--surface);border-left:4px solid var(--water);border-radius:10px;padding:10px 12px;font-size:1rem;line-height:1.35}
 .intro:empty{display:none}
 .stage{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:clamp(12px,5vw,28px);padding:30px 0 10px;min-height:300px}
@@ -169,6 +177,11 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
       <button class="icon" id="back" aria-label="Seviyelere dön">☰</button>
       <div class="title"><b id="lvTitle">Seviye 1</b><span id="moves">0 hamle</span></div>
       <div class="goal"><b id="goal">2 L</b><span id="goalSub">herhangi bir kovada</span></div>
+    </div>
+    <div class="hud">
+      <button class="hudbtn" id="hudWallet" aria-label="Yıldız mağazasını aç"></button>
+      <span class="lvstars" id="hudLv"></span>
+      <span class="hudnext" id="hudNext"></span>
     </div>
     <p class="intro" id="intro"></p>
     <div class="stage" id="stage"></div>
@@ -289,7 +302,9 @@ try{ const s = JSON.parse(localStorage.getItem("kova-save")||"null"); if(s && ty
 function persist(){ try{ localStorage.setItem("kova-save", JSON.stringify(save)); }catch(e){} }
 function earned(){ let n=0; for(const P of [save,save.oil,save.tas,save.eco]) for(const k in P.stars) n+=P.stars[k]; return n; }
 const UNLOCK={su:0,yag:15,tas:25,eco:35};
-const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5;
+const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10;
+const GOALS=[{need:MEASURE_UNLOCK,name:"Ölçülü döküm jokeri"},{need:UNLOCK.yag,name:"Su ve yağ dünyası"},{need:UNLOCK.tas,name:"Taş dünyası"},{need:UNLOCK.eco,name:"Tasarruf dünyası"}];
+function nextUnlock(e){ return GOALS.find(g=>e<g.need)||null; }
 function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
 function freeHints(){ if(!save.hints || save.hints.day!==today()) save.hints={day:today(),left:HINT_FREE+(save.noads?2:0)}; return save.hints.left; }
 if(typeof save.coins!=="number") save.coins=earned();
@@ -557,12 +572,22 @@ function update(){
   const ts=$("toSide"); if(ts) ts.hidden = !(selStone>=0 && state.s[selStone]>=0);
   $("depot").hidden = L.depot==null;
   if(L.depot!=null) $("depot").textContent=`Depoda kalan su: ${state.d} L`;
-  const ms=$("measure");
-  ms.textContent = itemUsed ? "Ölçülü döküm kullanıldı" : measureMode ? "Ölçülü dökümü iptal et" : `Ölçülü dök: tam 1 L (${MEASURE_COST} ★, en fazla 1 yıldız)`;
-  ms.disabled = itemUsed; ms.classList.toggle("on",measureMode);
+  renderHud();
+  const ms=$("measure"), mlock=earned()<MEASURE_UNLOCK;
+  ms.textContent = mlock ? `Ölçülü dök: toplam ${MEASURE_UNLOCK} ★ ile açılır (${earned()}/${MEASURE_UNLOCK})`
+    : itemUsed ? "Ölçülü döküm kullanıldı" : measureMode ? "Ölçülü dökümü iptal et" : `Ölçülü dök: tam 1 L (${MEASURE_COST} ★, en fazla 1 yıldız)`;
+  ms.disabled = itemUsed || mlock; ms.classList.toggle("on",measureMode);
   $("undo").disabled = !history.length;
 }
 function say(t){ $("msg").textContent=t; }
+function renderHud(){
+  const e=earned(), nx=nextUnlock(e), cur=prog().stars[li]||0;
+  $("hudWallet").innerHTML=`<b>★ ${save.coins}</b><span>harcanabilir · toplam ${e} kazanıldı</span>`;
+  $("hudLv").innerHTML=`${"★".repeat(cur)}<span class="off">${"★".repeat(3-cur)}</span>`;
+  $("hudLv").setAttribute("aria-label",`Bu seviyede ${cur} yıldızın var`);
+  $("hudNext").innerHTML = nx ? `<em>${nx.name}</em> için ${nx.need-e} ★ kaldı` : "Her şey açık. Yıldızlar artık sadece joker ve ipucu için.";
+}
+$("hudWallet").onclick=()=>{ renderShop(); $("shop").classList.add("on"); };
 
 function tapStone(k){
   sel=-1;
@@ -609,6 +634,7 @@ function apply(fn,text){
 function fillB(i){ const f=space(state,L,i); apply(()=>{ state.b[i][0]+=f; if(L.depot!=null) state.d-=f; },`${L.caps[i]} litrelik kova musluktan dolduruldu.`); }
 $("measure").onclick=()=>{
   if(itemUsed) return;
+  if(earned()<MEASURE_UNLOCK){ say(`Ölçülü döküm toplam ${MEASURE_UNLOCK} yıldız kazanınca açılır. Şu an ${earned()} yıldızın var.`); return; }
   if(measureMode){ measureMode=false; say("Ölçülü döküm iptal edildi."); update(); return; }
   if(save.coins<MEASURE_COST){ say(`Ölçülü döküm için ${MEASURE_COST} yıldız gerekiyor. Yıldızın: ${save.coins}.`); return; }
   measureMode=true; sel=-1; selStone=-1; say("Kaynak kovaya, sonra hedef kovaya dokun: tam 1 litre aktarılır. Yıldız döküm anında düşer."); update();
@@ -698,7 +724,7 @@ function refreshAll(){ if($("menu").classList.contains("on")) renderMenu(); else
 $("openShop").onclick=()=>{ renderShop(); $("shop").classList.add("on"); };
 $("closeShop").onclick=()=>{ $("shop").classList.remove("on"); refreshAll(); };
 function finish(impossible){
-  const P=prog();
+  const P=prog(), before=earned();
   let stars, text;
   if(impossible){
     stars = 3;
@@ -715,6 +741,8 @@ function finish(impossible){
   if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
   if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
   P.unlocked=Math.max(P.unlocked,li+1);
+  const opened=GOALS.filter(g=>before<g.need && earned()>=g.need).map(g=>g.name);
+  if(opened.length) text+=` Yeni açıldı: ${joinTr(opened)}!`;
   persist();
   $("ovStars").innerHTML="★".repeat(stars)+`<span class="off">${"★".repeat(3-stars)}</span>`;
   $("ovText").textContent=text;

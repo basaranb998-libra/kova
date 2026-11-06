@@ -12,7 +12,8 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 - Yıldızlar hem ilerleme hem para birimi. Bir seviyede sadece önceki en iyi sonuca göre fark kazanılır.
 - İpucu: günde 3 ücretsiz, sonrası 2 ★.
 - Hamle limiti dolunca: +5 hamle (3 ★), baştan başla ya da "Bu imkânsız".
-- Ölçülü döküm jokeri: tam 1 L aktarım, 5 ★, seviye başına tek kullanım, en fazla 1 yıldız.
+- Ölçülü döküm jokeri: toplam 10 yıldızla açılır. Tam 1 L aktarım, 5 ★, seviye başına tek kullanım, en fazla 1 yıldız.
+- Oyun ekranındaki yıldız çubuğu harcanabilir ve toplam yıldızı, bu seviyedeki en iyi sonucu ve bir sonraki açılışa (joker ya da dünya) kaç yıldız kaldığını gösterir; çubuğa dokununca mağaza açılır.
 - İmkânsız seviyede ek hamleye harcanan yıldızlar doğru tespitte iade edilir.
 - Mağaza (prototip, gerçek ödeme yok): ödüllü reklam, yıldız paketleri, kalıcı Usta paketi.
 
