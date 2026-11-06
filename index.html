@@ -210,6 +210,7 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
     <p id="ovText"></p>
     <div class="row">
       <button class="btn" id="ovMenu">Seviyeler</button>
+      <button class="btn" id="ovRetry">Tekrar dene</button>
       <button class="btn main" id="ovNext">Sonraki seviye</button>
     </div>
   </div>
@@ -808,8 +809,10 @@ function finish(impossible){
   $("ovText").textContent=text;
   const last = li>=WORLD_LEN[world]-1;
   $("ovNext").textContent= last ? "Bitti, seviyelere dön" : "Sonraki seviye";
+  $("ovRetry").hidden = stars>=3;
   $("ov").classList.add("on");
 }
+$("ovRetry").onclick=()=>{ $("ov").classList.remove("on"); start(li); };
 $("ovNext").onclick=()=>{ $("ov").classList.remove("on"); if(li>=WORLD_LEN[world]-1){ renderMenu(); show("menu"); } else start(li+1); };
 $("ovMenu").onclick=()=>{ $("ov").classList.remove("on"); renderMenu(); show("menu"); };
 window.addEventListener("resize",()=>{ if($("game").classList.contains("on")){ buildStage(); update(); } });
