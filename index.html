@@ -373,7 +373,7 @@ let pendingUnlock=[];
 function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
 function freeHints(){ if(!save.hints || save.hints.day!==today()) save.hints={day:today(),left:HINT_FREE+(save.noads?2:0)}; return save.hints.left; }
 if(typeof save.coins!=="number") save.coins=earned();
-function limitFor(w,n){ if(w!=="su" || n<5) return null; if(n<LEVELS.length) return 15; const k=n-LEVELS.length; return Math.min(4+Math.floor(k/4),11)+3+4; }
+function limitFor(w,n){ if(w!=="su" || n<5) return null; if(n<LEVELS.length) return 15; return getLevel(w,n).limit; }
 
 let world="su", L, li, state, history, sel, selStone=-1, moves, hintUsed, hintImp, wrongImp, limit=null, spent=0, measureMode=false, itemUsed=false;
 const prog=()=> ({su:save, yag:save.oil, tas:save.tas, eco:save.eco})[world];
@@ -460,34 +460,67 @@ function allDist(lv){
   }
   return best;
 }
+const TYPES=["acik","kapali","musluk","lavabo","yarim"];
+const TYPE_INTRO={
+  kapali:"Musluk ve lavabo yok; büyük kova dolu. Sadece kovadan kovaya aktarabilirsin.",
+  musluk:"Sadece musluk var, lavabo yok. Doldurduğun suyu dökemezsin; her litre kalıcı.",
+  lavabo:"Sadece lavabo var, musluk yok. Eldeki su bu kadar; döktüğün geri gelmez.",
+  yarim:"Kovalar yarım dolu başlıyor. Önce elindekini say, sonra plan yap."
+};
+const typeMemo={};
+function typeFor(n){
+  if(typeMemo[n]!==undefined) return typeMemo[n];
+  const k=n-LEVELS.length;
+  let t;
+  if(k<TYPES.length) t=TYPES[k];
+  else {
+    const r=rng(n*7919+3), prev=typeFor(n-1), roll=r();
+    if(prev!=="imkansiz" && roll<0.10) t="imkansiz";
+    else { const pool=TYPES.filter(x=>x!==prev); t=pool[Math.floor(r()*pool.length)]; }
+  }
+  return typeMemo[n]=t;
+}
 function gen(n){
   const r=rng(n*9973+17); const ri=(a,b)=>a+Math.floor(r()*(b-a+1));
-  const k=n-LEVELS.length;
-  const impossible = k>=3 && r()<0.12;
-  let lo=Math.min(4+Math.floor(k/4),11), hi=lo+3;
-  for(let tries=0;tries<600;tries++){
-    if(tries%100===99 && lo>3) lo--;
-    const three = r() < Math.min(0.25+k*0.02,0.6);
-    const closed = three && r()<0.5;
-    let caps;
-    if(three){ const a=ri(8,Math.min(10+Math.floor(k/3),19)); caps=[a,ri(4,a-2),ri(2,a-4)]; }
-    else { const a=ri(3,Math.min(7+Math.floor(k/3),15)); caps=[a,ri(a+1,Math.min(a+9,17))]; }
-    if(new Set(caps).size<caps.length) continue;
-    const g=caps.reduce(gcd);
-    if(impossible){
-      if(closed || g===1 || !SUF[g]) continue;
+  const k=n-LEVELS.length, type=typeFor(n), grow=Math.floor(k/8);
+  const maxCap=Math.min(9+Math.floor(k/3),19);
+  const LO={acik:5,kapali:6,musluk:4,lavabo:4,yarim:5}, CAP={acik:9,kapali:11,musluk:8,lavabo:8,yarim:9};
+  if(type==="imkansiz"){
+    let lo=Math.min(5+grow,9);
+    for(let tries=0;tries<400;tries++){
+      const three=r()<0.4;
+      let caps;
+      if(three){ const a=ri(8,maxCap); caps=[a,ri(4,a-2),ri(2,a-4)]; } else { const a=ri(3,Math.min(maxCap-2,12)); caps=[a,ri(a+1,Math.min(a+9,maxCap))]; }
+      if(new Set(caps).size<caps.length) continue;
+      const g=caps.reduce(gcd); if(g===1 || !SUF[g]) continue;
       const ch=[]; for(let t=1;t<Math.max(...caps);t++) if(t%g) ch.push(t);
-      const t=ch[ri(0,ch.length-1)];
-      return {caps,start:caps.map(()=>0),tap:true,sink:true,target:t,best:-1,
+      const t=ch[ri(0,ch.length-1)], par=lo+ri(0,3);
+      return {caps,start:caps.map(()=>0),tap:true,sink:true,target:t,best:-1,par,limit:par+5,type,
         why:`Kovalar ${joinTr(caps)} litrelik; hepsi ${g}’${SUF[g]} katı. Doldurunca, boşalttığında ya da aktardığında kovalarda hep ${g}’${SUF[g]} katı kalır. ${t} litre bu yüzden imkânsız.`};
     }
-    if(!closed && g!==1) continue;
-    const lv={caps,start:closed?[caps[0],0,0]:caps.map(()=>0),tap:!closed,sink:!closed};
-    let pick=null;
-    for(const [t,d] of allDist(lv)) if(d>=lo && d<=hi && (!pick || d>pick[1] || (d===pick[1] && t<pick[0]))) pick=[t,d];
-    if(pick){ lv.target=pick[0]; lv.best=pick[1]; return lv; }
+    return {caps:[6,9],start:[0,0],tap:true,sink:true,target:4,best:-1,par:7,limit:12,type,why:"6 ve 9, 3’ün katı. 4 litreye ulaşmak imkânsız."};
   }
-  return {caps:[3,5],start:[0,0],tap:true,sink:true,target:4,best:6};
+  let lo=Math.min(LO[type]+grow,CAP[type]), hi=lo+3;
+  for(let tries=0;tries<900;tries++){
+    if(tries%150===149 && lo>3) lo--;
+    let caps,start,tap,sink;
+    if(type==="acik"){ const a=ri(3,Math.min(maxCap-2,13)); caps=[a,ri(a+1,Math.min(a+9,maxCap))]; start=[0,0]; tap=true; sink=true; }
+    else if(type==="kapali"){ const a=ri(8,maxCap); caps=[a,ri(4,a-2),ri(2,a-4)]; start=[a,0,0]; tap=false; sink=false; }
+    else if(type==="musluk"){ const a=ri(7,maxCap); caps=[a,ri(3,a-2),ri(2,a-3)]; start=caps.map(()=>0); tap=true; sink=false; }
+    else if(type==="lavabo"){ const a=ri(7,maxCap); caps=[a,ri(3,a-2),ri(2,a-3)]; start=[ri(Math.ceil(a/2),a),ri(0,caps[1]),0]; tap=false; sink=true; }
+    else { const a=ri(6,maxCap); caps=[a,ri(3,a-1),ri(2,a-2)]; start=caps.map(c=>ri(0,c)); tap=true; sink=true; if(start.every(x=>x===0)) continue; }
+    if(new Set(caps).size<caps.length) continue;
+    if(caps.length===2 && caps.reduce(gcd)!==1) continue;
+    const lv={caps,start,tap,sink};
+    let pick=null;
+    for(const [t,d] of allDist(lv)){
+      if(caps.includes(t) && tap) continue;
+      if(start.includes(t)) continue;
+      if(d>=lo && d<=hi && (!pick || d>pick[1] || (d===pick[1] && t<pick[0]))) pick=[t,d];
+    }
+    if(pick){ lv.target=pick[0]; lv.best=pick[1]; lv.limit=pick[1]+5; lv.type=type; if(k<TYPES.length && TYPE_INTRO[type]) lv.intro=TYPE_INTRO[type]; return lv; }
+  }
+  return {caps:[3,5],start:[0,0],tap:true,sink:true,target:4,best:6,limit:11,type:"acik"};
 }
 const cache={su:{},yag:{},tas:{},eco:{}};
 function getLevel(w,n){
@@ -499,7 +532,7 @@ function getLevel(w,n){
   else { lv = n<LEVELS.length ? LEVELS[n] : gen(n); lv.start2 = {b:lv.start.map(x=>[x,0]), s:[]}; }
   if(!lv.start2) lv.start2 = {b:lv.start.map(x=>x.slice()), s:(lv.stones||[]).map(()=>-1), d:lv.depot};
   if(lv.best===undefined){ const p=solve(lv.start2,lv); lv.best=p?p.length:-1; }
-  if(lv.best===-1 && !lv.par){ const k=Math.max(0,n-LEVELS.length); lv.par = Math.min(4+Math.floor(k/4),11) + (n%3) + 2; }
+  if(lv.best===-1 && !lv.par) lv.par = 6 + (n%3);
   return cache[w][n]=lv;
 }
 function goalText(lv){ return lv.oil ? (lv.go===0 ? `${lv.gw} litre saf su` : `${lv.gw} su ve ${lv.go} yağ`) : `${lv.target} litre`; }
@@ -528,7 +561,7 @@ function renderMenu(){
     ? "Yağ suyun üstünde durur ve dökerken önce o akar. Katmanların sırasını lehine kullan."
     : world==="tas" ? "Taş yer kaplar: kovaya koyunca su yükselir, dolu kovada fazlası taşar. Arşimet’i lehine kullan."
     : world==="eco" ? "Sürdürülebilirlik serisi: su dökmek yok, depodaki su sınırlı. En az suyla ölç."
-    : "İlk 10 seviye öğretici, sonrası sonsuz ve giderek zorlaşıyor. Bazı bulmacaların çözümü yok; fark eden kazanır.";
+    : "İlk 13 seviye öğretici, sonrası sonsuz: beş farklı bulmaca tipi dönüşümlü gelir ve giderek zorlaşır. Bazı bulmacaların çözümü yok; fark eden kazanır.";
   const g=$("grid"); g.innerHTML="";
   const end = Math.min(page*PS+PS, total);
   for(let i=page*PS;i<end;i++){

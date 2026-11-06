@@ -3,7 +3,7 @@
 Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`index.html`).
 
 ## Dünyalar
-- **Su:** klasik ölçme bulmacaları. İlk 5 seviye öğretici, 6. seviyeden itibaren hamle limiti, 9. seviyeden itibaren "Bu imkânsız" butonu. 14. seviyeden sonrası sonsuz ve otomatik üretiliyor (seviye numarası sabit tohum, herkeste aynı bulmaca).
+- **Su:** klasik ölçme bulmacaları. İlk 5 seviye öğretici, 6. seviyeden itibaren hamle limiti, 9. seviyeden itibaren "Bu imkânsız" butonu. 14. seviyeden sonrası sonsuz ve otomatik üretiliyor (seviye numarası sabit tohum, herkeste aynı bulmaca). Üretici beş tip arasında döner ve aynı tipi art arda vermez: açık (iki kova, musluk ve lavabo), kapalı (üç kova, büyük kova dolu, araç yok), sadece musluk, sadece lavabo (su sınırlı, kovalar kısmen dolu), yarım dolu başlangıç (üç kova, musluk ve lavabo). 14–18. seviyeler bu tipleri sırayla tanıtır. Yaklaşık yüzde 10'u imkânsız bulmacadır, art arda gelmez. Zorluk hamle derinliğiyle yavaş artar; hamle hakkı her seviyede en kısa çözüm + 5.
 - **Su ve yağ:** yağ suyun üstünde durur, dökerken önce üstteki katman akar. 10 seviye, 15 yıldızla açılır.
 - **Taş:** taş yer kaplar, dolu kovada suyu taşırır. 5 seviye, 25 yıldızla açılır.
 - **Tasarruf (sürdürülebilirlik serisi):** lavabo yok, depo sınırlı, musluk kovayı sadece tamamen doldurur. 8 seviye, 35 yıldızla açılır.
