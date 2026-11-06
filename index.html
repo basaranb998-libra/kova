@@ -106,7 +106,10 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .seg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:18px}
 .depot{text-align:center;margin:0 0 4px;font-weight:600;color:var(--water-deep)}
 .depot[hidden]{display:none}
+#measure{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;line-height:1.2}
+#measure small{font-weight:500;font-size:.82rem;color:var(--muted)}
 #measure.on{background:var(--cobalt);border-color:var(--cobalt);color:var(--surface)}
+#measure.on small{color:var(--surface);opacity:.85}
 .seg button{border:2px solid var(--metal-edge);background:var(--surface);border-radius:12px;padding:8px 14px;font-weight:600;font-size:1rem}
 .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 .wallet{text-align:center;margin:12px 0 0;font-weight:700;color:var(--gold);font-size:1.2rem}
@@ -574,8 +577,10 @@ function update(){
   if(L.depot!=null) $("depot").textContent=`Depoda kalan su: ${state.d} L`;
   renderHud();
   const ms=$("measure"), mlock=earned()<MEASURE_UNLOCK;
-  ms.textContent = mlock ? `Ölçülü dök: toplam ${MEASURE_UNLOCK} ★ ile açılır (${earned()}/${MEASURE_UNLOCK})`
-    : itemUsed ? "Ölçülü döküm kullanıldı" : measureMode ? "Ölçülü dökümü iptal et" : `Ölçülü dök: tam 1 L (${MEASURE_COST} ★, en fazla 1 yıldız)`;
+  ms.innerHTML = mlock ? `<b>🔒 Joker: Ölçülü dök</b><small>Toplam ${MEASURE_UNLOCK} yıldız kazanınca açılır. Şu an ${earned()} yıldızın var.</small>`
+    : itemUsed ? `<b>Joker kullanıldı</b><small>Ölçülü döküm her seviyede bir kez kullanılabilir.</small>`
+    : measureMode ? `<b>Jokeri iptal et</b><small>Kaynak kovaya, sonra hedef kovaya dokun: tam 1 litre geçer.</small>`
+    : `<b>Joker: Ölçülü dök</b><small>Bir kovadan diğerine tam 1 litre aktarır. Bedeli ${MEASURE_COST} ★; kullanırsan bu seviyeden en fazla 1 yıldız alırsın.</small>`;
   ms.disabled = itemUsed || mlock; ms.classList.toggle("on",measureMode);
   $("undo").disabled = !history.length;
 }
