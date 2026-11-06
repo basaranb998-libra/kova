@@ -17,7 +17,7 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 - Seviye sonu kartı yıldızın neden kısıldığını yazar (ipucu, yanlış tespit, joker).
 - İpucu alınamıyorsa (ücretsiz hak bitti, yıldız yok) oyun içinden mağaza açılır.
 - Ölçülü döküm jokeri: toplam 10 yıldızla açılır. Tam 1 L aktarım, 5 ★, seviye başına tek kullanım, en fazla 1 yıldız.
-- Oyun ekranındaki yıldız çubuğu harcanabilir ve toplam yıldızı, bu seviyedeki en iyi sonucu ve bir sonraki açılışa (joker ya da dünya) kaç yıldız kaldığını gösterir; çubuğa dokununca mağaza açılır.
+- Oyun ekranında üst satırdaki mavi kutu harcanabilir yıldızı gösterir, dokununca mağaza açılır. Altındaki geniş kutuda seviyenin hedefi ve o seviyedeki en iyi yıldız sonucu durur. Bir dünya ya da joker eşiği aşılınca seviye sonu kartından sonra kutlama kartı çıkar.
 - İmkânsız seviyede ek hamleye harcanan yıldızlar doğru tespitte iade edilir.
 - Mağaza (prototip, gerçek ödeme yok): ödüllü reklam, yıldız paketleri, kalıcı Usta paketi.
 
