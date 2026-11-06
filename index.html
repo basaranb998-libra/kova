@@ -674,8 +674,10 @@ function check(){
   else if(world!=="su" && !solve(state,L)) setTimeout(()=>say("Bu durumdan hedefe giden yol kalmadı. Geri al ya da baştan başla."),0);
 }
 function outOfMoves(){
-  $("ov2Text").textContent=`${limit} hamlelik limit doldu. ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilir ya da baştan başlayabilirsin. Yıldızın: ${save.coins}.`;
-  $("buyMoves").disabled = save.coins<MOVE_COST;
+  const can = save.coins>=MOVE_COST;
+  $("ov2Text").textContent=`${limit} hamlelik limit doldu. ${MOVE_COST} yıldıza ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilirsin. `+
+    (can ? `Yıldızın: ${save.coins}.` : `Yıldızın ${save.coins}, yetmiyor; "Yıldız al" ile mağazadan alıp buraya dönebilirsin.`);
+  $("buyMoves").disabled = !can;
   $("imp2").hidden = $("imp").hidden;
   $("ov2").classList.add("on");
 }
@@ -727,7 +729,10 @@ function buy(p,b){
 }
 function refreshAll(){ if($("menu").classList.contains("on")) renderMenu(); else if(L) update(); }
 $("openShop").onclick=()=>{ renderShop(); $("shop").classList.add("on"); };
-$("closeShop").onclick=()=>{ $("shop").classList.remove("on"); refreshAll(); };
+$("closeShop").onclick=()=>{
+  $("shop").classList.remove("on"); refreshAll();
+  if($("game").classList.contains("on") && L && limit && moves>=limit && !$("ov").classList.contains("on")) outOfMoves();
+};
 function finish(impossible){
   const P=prog(), before=earned();
   let stars, text;
