@@ -499,6 +499,7 @@ function getLevel(w,n){
   else { lv = n<LEVELS.length ? LEVELS[n] : gen(n); lv.start2 = {b:lv.start.map(x=>[x,0]), s:[]}; }
   if(!lv.start2) lv.start2 = {b:lv.start.map(x=>x.slice()), s:(lv.stones||[]).map(()=>-1), d:lv.depot};
   if(lv.best===undefined){ const p=solve(lv.start2,lv); lv.best=p?p.length:-1; }
+  if(lv.best===-1 && !lv.par){ const k=Math.max(0,n-LEVELS.length); lv.par = Math.min(4+Math.floor(k/4),11) + (n%3) + 2; }
   return cache[w][n]=lv;
 }
 function goalText(lv){ return lv.oil ? (lv.go===0 ? `${lv.gw} litre saf su` : `${lv.gw} su ve ${lv.go} yağ`) : `${lv.target} litre`; }
@@ -621,9 +622,9 @@ function update(){
     b.classList.toggle("hit",meets(state.b[i],L));
     b.setAttribute("aria-label",`${c} litrelik kova, içinde ${w} litre su${L.oil?` ve ${o} litre yağ`:""}${i===sel?", seçili":""}`);
   });
-  const showPar = L.best>0 && (world!=="su" || (prog().stars[li]||0)>0);
+  const showPar = L.best>0 || L.par>0;
   const base = limit ? `${moves} / ${limit} hamle` : `${moves} hamle`;
-  $("moves").textContent = showPar ? `${base}, en iyisi ${L.best}` : base;
+  $("moves").textContent = showPar ? `${base}, en kısa ${L.best>0 ? L.best : L.par}` : base;
   $("moves").classList.toggle("warn", !!limit && moves>=limit-1);
   const fh=freeHints();
   $("hint").innerHTML = `İpucu<span class="badge">${fh>0 ? `${fh} ücretsiz` : `${HINT_COST} ★`}</span>`;

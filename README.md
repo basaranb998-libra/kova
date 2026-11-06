@@ -9,6 +9,7 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 - **Tasarruf (sürdürülebilirlik serisi):** lavabo yok, depo sınırlı, musluk kovayı sadece tamamen doldurur. 8 seviye, 35 yıldızla açılır.
 
 ## Ekonomi
+- Her seviyede en kısa (jokersiz) çözüm hamle sayısı baştan görünür. İmkânsız seviyelerde yokluğu ele vermesin diye tuzak bir sayı gösterilir.
 - Yıldızlar hem ilerleme hem para birimi. Bir seviyede sadece önceki en iyi sonuca göre fark kazanılır.
 - İpucu: günde 3 ücretsiz, sonrası 2 ★.
 - Hamle hakkı seviyeye bağlıdır ve kayıtta tutulur: "Baştan" tahtayı sıfırlar ama sayacı sıfırlamaz (ücretsiz "hepsini geri al"); menüye çıkıp dönmek ya da sayfayı yenilemek de sayacı korur. Seviye çözülünce hak sıfırlanır.
