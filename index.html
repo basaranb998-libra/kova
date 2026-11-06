@@ -224,6 +224,19 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
   </div>
 </div>
 
+<div class="ov" id="ov3">
+  <div class="card">
+    <h2>Çözümü var</h2>
+    <p id="ov3Text"></p>
+    <div class="row">
+      <button class="btn main" id="goOn">Denemeye devam</button>
+      <button class="btn main" id="buyMoves3">+5 hamle (3 ★)</button>
+      <button class="btn" id="restart3">Baştan başla</button>
+      <button class="btn" id="menu3">Seviyeler</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="ov2">
   <div class="card">
     <h2>Hamlen bitti</h2>
@@ -315,7 +328,7 @@ function freeHints(){ if(!save.hints || save.hints.day!==today()) save.hints={da
 if(typeof save.coins!=="number") save.coins=earned();
 function limitFor(w,n){ if(w!=="su" || n<5) return null; if(n<LEVELS.length) return 15; const k=n-LEVELS.length; return Math.min(4+Math.floor(k/4),11)+3+4; }
 
-let world="su", L, li, state, history, sel, selStone=-1, moves, hintUsed, wrongImp, limit=null, spent=0, measureMode=false, itemUsed=false;
+let world="su", L, li, state, history, sel, selStone=-1, moves, hintUsed, hintImp, wrongImp, limit=null, spent=0, measureMode=false, itemUsed=false;
 const prog=()=> ({su:save, yag:save.oil, tas:save.tas, eco:save.eco})[world];
 const WORLD_LEN={su:Infinity, yag:OIL.length, tas:TAS.length, eco:ECO.length};
 
@@ -493,14 +506,14 @@ function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.t
 
 /* ---------- game ---------- */
 function start(i){
-  li=i; L=getLevel(world,i); state=clone(L.start2); history=[]; sel=-1; selStone=-1; moves=0; hintUsed=false; wrongImp=false; limit=limitFor(world,i); spent=0; measureMode=false; itemUsed=false;
+  li=i; L=getLevel(world,i); state=clone(L.start2); history=[]; sel=-1; selStone=-1; moves=0; hintUsed=false; hintImp=false; wrongImp=!!(prog().wrong&&prog().wrong[i]); limit=limitFor(world,i); spent=0; measureMode=false; itemUsed=false;
   $("lvTitle").textContent = world==="yag" ? `Su ve yağ ${i+1}` : world==="tas" ? `Taş ${i+1}` : world==="eco" ? `Tasarruf ${i+1}` : `Seviye ${i+1}`;
   if(L.oil){
     $("goal").textContent = L.go===0 ? `${L.gw} L su` : `${L.gw} su + ${L.go} yağ`;
     $("goalSub").textContent = L.go===0 ? "saf, tek kovada" : "aynı kovada";
   } else { $("goal").textContent=`${L.target} L`; $("goalSub").textContent="herhangi bir kovada"; }
   $("intro").textContent=L.intro||"";
-  $("imp").hidden = world!=="su" || i<IMP_FROM;
+  $("imp").hidden = world!=="su" || i<IMP_FROM || wrongImp;
   buildStage(); say(toolsText()); update(); show("game");
 }
 function toolsText(){
@@ -664,7 +677,14 @@ $("hint").onclick=()=>{
   persist();
   hintUsed=true; update();
   const p=solve(state,L);
-  if(!p){ say(L.why ? "Buradan hiçbir yol hedefe gitmiyor. Belki de sorun bu bulmacanın kendisinde?" : "Buradan hedefe yol yok. Baştan başlamayı ya da geri almayı dene."); return; }
+  if(!p){
+    if(L.best===-1){
+      hintImp=true; const g=L.caps.reduce(gcd);
+      say(g>1 ? `İpucu: kova hacimlerine bak, ${joinTr(L.caps)} litre. Hepsi ${g}’${SUF[g]||"nin"} katı. Doldurunca, boşaltınca ya da aktarınca hangi miktarlar oluşabilir?`
+              : "İpucu: buradan hedefe giden bir yol göremiyorum. Kovalardaki toplam suyu ve hacimleri bir daha düşün.");
+    } else say("Buradan hedefe yol yok. Baştan başlamayı ya da geri almayı dene.");
+    return;
+  }
   const m=p[0];
   sel=-1; selStone=-1; update();
   if(m.t==="fill") say(`İpucu: ${L.caps[m.i]} litrelik kovayı musluktan doldur. (${p.length} hamle kaldı)`);
@@ -675,12 +695,22 @@ $("hint").onclick=()=>{
 $("imp").onclick=()=>{
   if(L.best===-1){ finish(true); }
   else {
-    wrongImp=true; moves++; sel=-1; selStone=-1;
-    say("Bu bulmacanın çözümü var. Yanlış tespit 1 hamle saydı; bu seviyede en fazla 2 yıldız alabilirsin.");
-    update();
-    if(limit && moves>=limit) setTimeout(outOfMoves,450); else lastMoveWarn();
+    const P=prog(); (P.wrong||(P.wrong={}))[li]=true; persist();
+    wrongImp=true; sel=-1; selStone=-1;
+    if(!limit || moves<limit) moves++;
+    const out = limit && moves>=limit, sell = world==="su" && li>=MOVES_FROM;
+    $("imp").hidden=true; say("Bu bulmacanın çözümü var."); update();
+    $("ov3Text").textContent = out
+      ? "Kusura bakma, bu bulmacanın çözümü var. Yanlış tespit bu seviyeyi en fazla 2 yıldıza düşürdü, hamlen de bitti. Baştan başlayıp çözümü ara."
+      : `Kusura bakma, bu bulmacanın çözümü var. Yanlış tespit 1 hamle saydı ve bu seviyeden en fazla 2 yıldız alabilirsin. ${limit ? `${limit-moves} hamlen kaldı, ` : ""}denemeye devam et.`;
+    $("goOn").hidden = out; $("buyMoves3").hidden = !(out && sell); $("buyMoves3").disabled = save.coins<MOVE_COST;
+    $("ov2").classList.remove("on"); $("ov3").classList.add("on");
   }
 };
+$("goOn").onclick=()=>{ $("ov3").classList.remove("on"); lastMoveWarn(); };
+$("buyMoves3").onclick=()=>{ $("ov3").classList.remove("on"); buyMoves(); };
+$("restart3").onclick=()=>{ $("ov3").classList.remove("on"); start(li); };
+$("menu3").onclick=()=>{ $("ov3").classList.remove("on"); renderMenu(); show("menu"); };
 
 function check(){
   if(goal(state,L)) setTimeout(()=>finish(false),500);
@@ -698,7 +728,8 @@ function outOfMoves(){
   $("imp2").hidden = $("imp").hidden;
   $("ov2").classList.add("on");
 }
-$("buyMoves").onclick=()=>{ if(save.coins<MOVE_COST) return; save.coins-=MOVE_COST; spent+=MOVE_COST; limit+=MOVE_PACK; persist(); $("ov2").classList.remove("on"); say(`${MOVE_PACK} hamle eklendi.`); update(); };
+function buyMoves(){ if(save.coins<MOVE_COST) return; save.coins-=MOVE_COST; spent+=MOVE_COST; limit+=MOVE_PACK; persist(); $("ov2").classList.remove("on"); say(`${MOVE_PACK} hamle eklendi.`); update(); }
+$("buyMoves").onclick=buyMoves;
 $("imp2").onclick=()=>{ $("ov2").classList.remove("on"); $("imp").onclick(); };
 $("restart2").onclick=()=>{ $("ov2").classList.remove("on"); start(li); };
 $("menu2").onclick=()=>{ $("ov2").classList.remove("on"); renderMenu(); show("menu"); };
@@ -754,16 +785,18 @@ function finish(impossible){
   const P=prog(), before=earned();
   let stars, text;
   if(impossible){
-    stars = 3;
+    stars = hintImp ? 1 : 3;
     $("ovTitle").textContent="Doğru tespit!";
-    text=L.why;
+    text=L.why + (hintImp ? " İpucu imkânsızlığı sezdirdiği için 1 yıldız." : "");
   } else {
     stars = moves<=L.best ? 3 : moves<=L.best+3 ? 2 : 1;
     $("ovTitle").textContent="Oldu!";
     text = moves<=L.best ? `${moves} hamlede ${goalText(L)}. Bundan kısası yok.` : `${moves} hamlede ${goalText(L)}. En kısa çözüm ${L.best} hamle.`;
   }
+  const raw=stars;
   if(hintUsed||wrongImp||itemUsed) stars=Math.min(stars,2);
   if(itemUsed && !impossible){ stars=1; text=`Ölçülü dökümle ${moves} hamlede ${goalText(L)}. Jokersiz en kısa çözüm ${L.best} hamle; tekrar deneyip yıldızları toplayabilirsin.`; }
+  else if(raw>stars) text+=` ${hintUsed&&wrongImp ? "İpucu ve yanlış imkânsız tespiti yüzünden" : hintUsed ? "İpucu kullandığın için" : "Yanlış imkânsız tespiti yüzünden"} en fazla 2 yıldız.`;
   const prev=P.stars[li]||0;
   if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
   if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
