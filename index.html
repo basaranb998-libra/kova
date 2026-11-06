@@ -155,6 +155,8 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .card h2{margin:0;font-size:2rem;color:var(--cobalt);line-height:1.1}
 .stars{font-size:2.4rem;color:var(--gold);letter-spacing:6px;margin:6px 0}
 .stars .off{color:var(--metal)}
+.card p.gain{margin:0 0 6px;color:var(--gold);font-weight:700;font-size:1.1rem}
+.card p.gain.none{color:var(--muted);font-weight:600}
 .card p{color:var(--muted);font-size:1.05rem;line-height:1.4;margin:8px 0 18px}
 .card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.water,.oil,.bucket{transition:none}}
@@ -207,6 +209,7 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
   <div class="card">
     <h2 id="ovTitle">Oldu!</h2>
     <div class="stars" id="ovStars"></div>
+    <p class="gain" id="ovGain"></p>
     <p id="ovText"></p>
     <div class="row">
       <button class="btn" id="ovMenu">Seviyeler</button>
@@ -607,7 +610,7 @@ function renderHud(){
   $("hudWallet").innerHTML=`<b>★ ${save.coins}</b><span>harcanabilir · toplam ${e} kazanıldı</span>`;
   $("hudLv").innerHTML=`${"★".repeat(cur)}<span class="off">${"★".repeat(3-cur)}</span>`;
   $("hudLv").setAttribute("aria-label",`Bu seviyede ${cur} yıldızın var`);
-  $("hudNext").innerHTML = nx ? `<em>${nx.name}</em> için ${nx.need-e} ★ kaldı` : "Her şey açık. Yıldızlar artık sadece joker ve ipucu için.";
+  $("hudNext").innerHTML = nx ? `<em>${nx.name}</em> toplam ${nx.need} ★ kazanınca açılır · ${nx.need-e} kaldı` : "Her şey açık. Yıldızlar artık sadece joker ve ipucu için.";
 }
 $("hudWallet").onclick=()=>{ renderShop(); $("shop").classList.add("on"); };
 
@@ -806,6 +809,9 @@ function finish(impossible){
   if(opened.length) text+=` Yeni açıldı: ${joinTr(opened)}!`;
   persist();
   $("ovStars").innerHTML="★".repeat(stars)+`<span class="off">${"★".repeat(3-stars)}</span>`;
+  const gained=Math.max(0,stars-prev);
+  $("ovGain").textContent = gained>0 ? (prev>0 ? `+${gained} ★ · daha önce ${prev} yıldızın vardı, eksik olanı aldın` : `+${gained} ★`) : `Yeni yıldız yok · bu seviyede zaten ${prev} yıldızın var`;
+  $("ovGain").classList.toggle("none",gained===0);
   $("ovText").textContent=text;
   const last = li>=WORLD_LEN[world]-1;
   $("ovNext").textContent= last ? "Bitti, seviyelere dön" : "Sonraki seviye";
