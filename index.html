@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kova: su aktarma bulmacası</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF1F7; --surface:#FFFFFF; --ink:#13284A; --muted:#5B6F8E;
+  --cobalt:#1E46A0; --water:#1FA3B0; --water-deep:#137C88; --red:#C2413A;
+  --metal:#C9D4E2; --oil:#E9A23B; --stone:#7E8794; --metal-edge:#8496B0; --tile:#D7E3F0; --gold:#E2A72E;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1A30; --surface:#15274A; --ink:#E6EEF8; --muted:#9DB0CC;
+    --cobalt:#7FA2F0; --water:#2BB8C4; --water-deep:#1A8C97; --red:#E8726A;
+    --metal:#2A3F66; --oil:#F0B44E; --stone:#A3ADBB; --metal-edge:#6F86AC; --tile:#1B3058; --gold:#F0BE52;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1A30; --surface:#15274A; --ink:#E6EEF8; --muted:#9DB0CC;
+  --cobalt:#7FA2F0; --water:#2BB8C4; --water-deep:#1A8C97; --red:#E8726A;
+  --metal:#2A3F66; --oil:#F0B44E; --stone:#A3ADBB; --metal-edge:#6F86AC; --tile:#1B3058; --gold:#F0BE52;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:"Baloo 2",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+  background-image:
+    radial-gradient(circle at 50% 50%, transparent 58%, var(--tile) 59%, var(--tile) 62%, transparent 63%);
+  background-size:56px 56px;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:12px 16px 20px}
+.screen{display:none;flex:1;flex-direction:column}
+.screen.on{display:flex}
+
+/* menu */
+.brand{text-align:center;margin:28px 0 8px}
+.brand h1{font-size:clamp(3.2rem,16vw,4.6rem);line-height:.9;margin:0;font-weight:800;color:var(--cobalt);letter-spacing:-.02em}
+.brand p{margin:10px auto 0;color:var(--muted);font-size:1.05rem;max-width:30ch}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0 12px}
+.lv{aspect-ratio:1;border:2px solid var(--metal-edge);background:var(--surface);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem;line-height:1}
+.lv small{font-size:.7rem;color:var(--gold);letter-spacing:1px;margin-top:4px;min-height:.8rem}
+.lv[disabled]{opacity:.35;cursor:default}
+.lv.cur{background:var(--cobalt);color:var(--surface);border-color:var(--cobalt)}
+.cont{display:block;margin:22px auto 0;min-width:70%}
+.pager{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:18px;color:var(--muted);font-weight:600;font-size:1.05rem}
+.icon[disabled]{opacity:.3;cursor:default}
+.note{color:var(--muted);text-align:center;font-size:.95rem;margin-top:auto}
+
+/* game */
+.top{display:flex;align-items:center;gap:10px}
+.icon{width:42px;height:42px;border-radius:12px;border:2px solid var(--metal-edge);background:var(--surface);display:grid;place-items:center;font-size:1.2rem;flex:none}
+.title{flex:1;min-width:0}
+.title b{display:block;font-size:1.25rem;line-height:1.1}
+.title span{color:var(--muted);font-size:.95rem}
+.goal{background:var(--cobalt);color:var(--surface);border-radius:14px;padding:6px 12px;text-align:center;line-height:1.05;flex:none}
+.goal b{display:block;font-size:1.5rem}
+.goal span{font-size:.75rem}
+.intro{margin:14px 0 0;background:var(--surface);border-left:4px solid var(--water);border-radius:10px;padding:10px 12px;font-size:1rem;line-height:1.35}
+.intro:empty{display:none}
+.stage{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:clamp(12px,5vw,28px);padding:30px 0 10px;min-height:300px}
+.bucket{border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .22s ease}
+.bucket.sel{transform:translateY(-16px)}
+.bucket.pour{transform:translateY(-16px) rotate(-12deg)}
+.bucket.pour.r{transform:translateY(-16px) rotate(12deg)}
+.vol{font-weight:700;font-size:1.15rem;line-height:1}
+.vol span{color:var(--muted);font-weight:500;font-size:.9rem}
+.body{position:relative;width:var(--w);height:var(--h);}
+.shell{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,90% 100%,10% 100%);background:var(--metal)}
+.inner{position:absolute;inset:4px 4px 5px;clip-path:polygon(0 0,100% 0,89.5% 100%,10.5% 100%);background:var(--surface);overflow:hidden}
+.water{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(var(--water),var(--water-deep));transition:height .45s ease,bottom .45s ease}
+.stones{position:absolute;left:8%;right:8%;bottom:0;height:0;display:flex;flex-direction:column-reverse;gap:2px;transition:height .3s ease}
+.stones span{background:var(--stone);border-radius:40% 45% 35% 40%/50% 45% 40% 45%;min-height:4px}
+.tray{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.tray[hidden]{display:none}
+.rock{border:2px solid var(--metal-edge);background:var(--surface);border-radius:999px;padding:4px 14px;font-weight:600;font-size:.95rem;line-height:1.1;display:flex;flex-direction:column;align-items:center}
+.rock::before{content:"";width:calc(14px + var(--v)*6px);height:calc(9px + var(--v)*3px);background:var(--stone);border-radius:45% 50% 40% 45%/55% 50% 45% 50%;margin-bottom:2px}
+.rock small{font-weight:500;color:var(--muted);font-size:.75rem}
+.rock.sel{border-color:var(--cobalt);background:var(--cobalt);color:var(--surface)}
+.rock.sel small{color:var(--surface)}
+.oil{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--oil);transition:height .45s ease,bottom .45s ease}
+.oil::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:rgba(255,255,255,.4)}
+.btn[disabled]{opacity:.45;cursor:default}
+.seg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:18px}
+.depot{text-align:center;margin:0 0 4px;font-weight:600;color:var(--water-deep)}
+.depot[hidden]{display:none}
+#measure.on{background:var(--cobalt);border-color:var(--cobalt);color:var(--surface)}
+.seg button{border:2px solid var(--metal-edge);background:var(--surface);border-radius:12px;padding:8px 14px;font-weight:600;font-size:1rem}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.wallet{text-align:center;margin:12px 0 0;font-weight:700;color:var(--gold);font-size:1.2rem}
+.wallet span{color:var(--muted);font-weight:500;font-size:.9rem}
+.seg button.locked{opacity:.55}
+.packs{display:flex;flex-direction:column;gap:8px;margin:4px 0 16px;text-align:left}
+.pack{display:flex;align-items:center;gap:10px;border:2px solid var(--tile);border-radius:14px;padding:8px 10px}
+.pack>div{flex:1;min-width:0}
+.pack b{font-size:1.05rem}
+.pack span{display:block;color:var(--muted);font-size:.85rem;line-height:1.25}
+.pack em{font-style:normal;font-size:.7rem;font-weight:700;background:var(--gold);color:#3a2a00;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+.pack .btn{padding:8px 12px;font-size:.95rem;white-space:nowrap}
+#shop .card{max-height:88vh;overflow:auto}
+.shopbtn{display:block;margin:10px auto 0}
+.pager[hidden]{display:none}
+.water::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:rgba(255,255,255,.35)}
+.ticks{position:absolute;inset:0;background-image:linear-gradient(to top,var(--metal-edge) 1px,transparent 1px);background-size:100% var(--u);background-position:0 100%;opacity:.25;pointer-events:none}
+.rim{position:absolute;left:-4px;right:-4px;top:-5px;height:8px;border-radius:4px;background:var(--metal-edge)}
+.handle{position:absolute;left:12%;right:12%;top:-28px;height:34px;border:3px solid var(--metal-edge);border-bottom:none;border-radius:50% 50% 0 0/100% 100% 0 0}
+.bucket.sel .rim{background:var(--cobalt)}
+.bucket.hit .vol{color:var(--water-deep)}
+.cap{font-size:.85rem;color:var(--muted)}
+.msg{text-align:center;min-height:2.6em;color:var(--muted);font-size:1rem;line-height:1.3;margin:4px 0 8px}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.mini{display:flex;flex-direction:column;gap:6px;align-items:center}
+.stage.has-tools .mini{min-height:80px}
+.mini .btn{padding:5px 10px;font-size:.9rem;white-space:nowrap}
+.btn{border:2px solid var(--metal-edge);background:var(--surface);border-radius:12px;padding:8px 14px;font-weight:600;font-size:1rem}
+.btn.fill{background:var(--water);border-color:var(--water);color:#fff}
+.btn.red{border-color:var(--red);color:var(--red)}
+.btn.main{background:var(--cobalt);border-color:var(--cobalt);color:var(--surface);font-size:1.15rem;padding:12px 22px}
+.btn[hidden]{display:none}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.tools .btn{padding:10px 6px}
+.imp{margin-top:8px;width:100%}
+
+/* overlay */
+.ov{position:fixed;inset:0;background:rgba(10,20,40,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.ov.on{display:flex}
+.card{background:var(--surface);border-radius:22px;padding:26px 22px;max-width:380px;width:100%;text-align:center}
+.card h2{margin:0;font-size:2rem;color:var(--cobalt);line-height:1.1}
+.stars{font-size:2.4rem;color:var(--gold);letter-spacing:6px;margin:6px 0}
+.stars .off{color:var(--metal)}
+.card p{color:var(--muted);font-size:1.05rem;line-height:1.4;margin:8px 0 18px}
+.card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.water,.oil,.bucket{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section class="screen on" id="menu">
+    <div class="brand">
+      <h1>Kova</h1>
+      <p>Birkaç kova, bazen bir musluk. Tam istenen miktarı ölç.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Dünya"><button data-w="su" aria-pressed="true">Su</button><button data-w="yag" aria-pressed="false">Su ve yağ</button><button data-w="tas" aria-pressed="false">Taş</button><button data-w="eco" aria-pressed="false">Tasarruf</button></div>
+    <p class="wallet" id="wallet"></p>
+    <button class="btn shopbtn" id="openShop">Yıldız mağazası</button>
+    <button class="btn main cont" id="cont">Devam et</button>
+    <div class="pager" id="pager"><button class="icon" id="prev" aria-label="Önceki sayfa">‹</button><span id="pageLbl"></span><button class="icon" id="next" aria-label="Sonraki sayfa">›</button></div>
+    <div class="grid" id="grid"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <section class="screen" id="game">
+    <div class="top">
+      <button class="icon" id="back" aria-label="Seviyelere dön">☰</button>
+      <div class="title"><b id="lvTitle">Seviye 1</b><span id="moves">0 hamle</span></div>
+      <div class="goal"><b id="goal">2 L</b><span id="goalSub">herhangi bir kovada</span></div>
+    </div>
+    <p class="intro" id="intro"></p>
+    <div class="stage" id="stage"></div>
+    <div class="tray" id="tray" hidden></div>
+    <p class="depot" id="depot" hidden></p>
+    <p class="msg" id="msg" aria-live="polite"></p>
+    <div class="tools">
+      <button class="btn" id="undo">Geri al</button>
+      <button class="btn" id="reset">Baştan</button>
+      <button class="btn" id="hint">İpucu</button>
+    </div>
+    <button class="btn imp" id="measure">Ölçülü dök</button>
+    <button class="btn red imp" id="imp" hidden>Bu imkânsız</button>
+  </section>
+</div>
+
+<div class="ov" id="ov">
+  <div class="card">
+    <h2 id="ovTitle">Oldu!</h2>
+    <div class="stars" id="ovStars"></div>
+    <p id="ovText"></p>
+    <div class="row">
+      <button class="btn" id="ovMenu">Seviyeler</button>
+      <button class="btn main" id="ovNext">Sonraki seviye</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="shop">
+  <div class="card">
+    <h2>Yıldız mağazası</h2>
+    <p id="shopNote"></p>
+    <div class="packs" id="packs"></div>
+    <div class="row"><button class="btn" id="closeShop">Kapat</button></div>
+  </div>
+</div>
+
+<div class="ov" id="ov2">
+  <div class="card">
+    <h2>Hamlen bitti</h2>
+    <p id="ov2Text"></p>
+    <div class="row">
+      <button class="btn main" id="buyMoves">+5 hamle (3 ★)</button>
+      <button class="btn red" id="imp2">Bu imkânsız</button>
+      <button class="btn" id="restart2">Baştan başla</button>
+      <button class="btn" id="menu2">Seviyeler</button>
+      <button class="btn" id="shop2">Yıldız al</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  {caps:[5],start:[0],tap:true,sink:false,target:5,
+   intro:"Hoş geldin! Kovaya dokun, altında çıkan Doldur butonuna bas: musluk kovayı ağzına kadar doldurur."},
+  {caps:[2,5],start:[0,5],tap:false,sink:false,target:3,
+   intro:"Aktarma: dolu kovaya dokun, sonra boş kovaya dokun. Su, hedef kova dolunca durur. Geriye ne kalır?"},
+  {caps:[3,5],start:[0,0],tap:true,sink:true,target:2,
+   intro:"İkisini birleştir: önce doldur, sonra aktar. Hedef herhangi bir kovada 2 litre."},
+  {caps:[3,4],start:[3,4],tap:false,sink:true,target:1,
+   intro:"Lavabo: seçili kovayı Boşalt ile dökebilirsin. İki kova da dolu; 1 litreyi nasıl elde edersin?"},
+  {caps:[3,5],start:[0,0],tap:true,sink:true,target:1,intro:"Artık hepsini biliyorsun. Aynı iki kovayla bu sefer 1 litre."},
+  {caps:[3,5],start:[0,0],tap:true,sink:true,target:4,intro:"Klasik bulmaca: 3 ve 5 litrelik kovayla tam 4 litre. Bu seviyeden itibaren hamle limiti var."},
+  {caps:[4,9],start:[0,0],tap:true,sink:true,target:6},
+  {caps:[8,5,3],start:[8,0,0],tap:false,sink:false,target:4,
+   intro:"Musluk ve lavabo yok. Sadece kovadan kovaya aktarabilirsin."},
+  {caps:[4,6],start:[2,4],tap:false,sink:false,target:1,
+   intro:"Yeni buton: Bu imkânsız. Bazı bulmacaların çözümü yok. Eminsen bas; çözümü olan bulmacada basarsan yıldız kaybedersin.",
+   why:"Kovalar 4 ve 6 litre, içlerindeki su 2 ve 4 litre: hepsi çift sayı. Ne kadar aktarırsan aktar miktarlar çift kalır, 1 litre hiç oluşmaz."},
+  {caps:[5,7],start:[0,0],tap:true,sink:true,target:6},
+  {caps:[6,9],start:[0,0],tap:true,sink:true,target:4,
+   why:"6 ve 9, 3’ün katı. Doldursan da boşaltsan da aktarsan da kovalarda hep 0, 3, 6 ya da 9 litre olur. 4 litreye ulaşmak imkânsız."},
+  {caps:[10,7,3],start:[10,0,0],tap:false,sink:false,target:5},
+  {caps:[14,9,5],start:[14,0,0],tap:false,sink:false,target:7,intro:"Son öğretici seviye. Acele etme."}
+];
+const OIL = [
+  {caps:[6,4,2],start:[[3,3],[0,0],[0,0]],gw:1,go:1,
+   intro:"Yağ suyun üstünde durur. Dökerken önce üstteki yağ akar, bitince sıra suya gelir. Hedef kovada da su dibe, yağ üste yerleşir."},
+  {caps:[8,5,3],start:[[5,3],[0,0],[0,0]],gw:2,go:0,intro:"Saf su: içinde hiç yağ olmayan bir kovada tam 2 litre su."},
+  {caps:[10,7,3],start:[[6,4],[0,0],[0,0]],gw:4,go:0},
+  {caps:[7,4,3],start:[[4,3],[0,0],[0,0]],gw:2,go:0},
+  {caps:[9,6,4],start:[[5,4],[0,0],[0,0]],gw:2,go:2},
+  {caps:[8,5,3],start:[[4,4],[0,0],[0,0]],gw:2,go:2},
+  {caps:[8,5,3],start:[[5,3],[0,0],[0,0]],gw:4,go:0},
+  {caps:[10,7,3],start:[[6,4],[0,0],[0,0]],gw:4,go:4},
+  {caps:[9,6,4],start:[[5,4],[0,0],[0,0]],gw:1,go:1},
+  {caps:[10,7,3],start:[[6,4],[0,0],[0,0]],gw:2,go:3,intro:"Bu dünyanın son bulmacası. Uzun ama adil."}
+];
+OIL.forEach(l=>{ l.tap=false; l.sink=false; l.oil=true; });
+const TAS = [
+  {caps:[5],start:[[0,0]],tap:true,sink:true,target:3,stones:[{v:2}],
+   intro:"Taş batar ve yer kaplar: kovaya koyunca su seviyesi yükselir, kova doluysa fazlası taşar. Taşa dokun, sonra kovaya dokun."},
+  {caps:[6,9],start:[[0,0],[0,0]],tap:true,sink:true,target:4,stones:[{v:1}],
+   intro:"Su dünyasında imkânsız olan bulmacayı hatırla: 6 ve 9 litreyle 4 litre. Bu sefer elinde 1 litrelik bir taş var."},
+  {caps:[4,9],start:[[0,0],[0,0]],tap:true,sink:true,target:2,stones:[{v:1}]},
+  {caps:[5,8],start:[[5,0],[0,0]],tap:false,sink:false,target:1,stones:[{v:2},{v:3}],
+   intro:"Musluk ve lavabo yok. Taşan su yere gider ve geri gelmez."},
+  {caps:[5,8],start:[[5,0],[0,0]],tap:false,sink:false,target:4,stones:[{v:2},{v:3}],intro:"Bu bölümün son bulmacası."}
+];
+TAS.forEach(l=>l.stoneWorld=true);
+const ECO = [
+  {caps:[3,5],target:2,depot:5,
+   intro:"Sürdürülebilirlik serisi: lavabo yok, su dökmek yasak. Musluk depodan su çeker ve kovayı sadece tamamen doldurur. Depodaki su sınırlı."},
+  {caps:[3,5],target:1,depot:6},
+  {caps:[3,7],target:2,depot:9},
+  {caps:[7,5,2],target:1,depot:1,start:[[0,0],[2,0],[2,0]],intro:"Kovalarda biraz su var ama depoda sadece 1 litre kaldı. O 1 litreyi tam doğru boşluğa harca."},
+  {caps:[6,4,3],target:2,depot:5,intro:"Bol suyla 2 hamlede biterdi. Depoda sadece 5 litre var."},
+  {caps:[9,5,4],target:2,depot:2,start:[[4,0],[0,0],[0,0]]},
+  {caps:[10,7,3],target:5,depot:8},
+  {caps:[11,7,4],target:6,depot:9,intro:"Serinin finali. Her damla hesaplı."}
+];
+ECO.forEach(l=>{ if(!l.start) l.start=l.caps.map(()=>[0,0]); l.tap=true; l.sink=false; });
+const IMP_FROM = 8;
+
+const $ = id => document.getElementById(id);
+let save = {unlocked:0, stars:{}, oil:{unlocked:0, stars:{}}, tas:{unlocked:0, stars:{}}, eco:{unlocked:0, stars:{}}};
+try{ const s = JSON.parse(localStorage.getItem("kova-save")||"null"); if(s && typeof s.unlocked==="number"){ save = s; if(!save.oil) save.oil={unlocked:0,stars:{}}; if(!save.tas) save.tas={unlocked:0,stars:{}}; if(!save.eco) save.eco={unlocked:0,stars:{}}; } }catch(e){}
+function persist(){ try{ localStorage.setItem("kova-save", JSON.stringify(save)); }catch(e){} }
+function earned(){ let n=0; for(const P of [save,save.oil,save.tas,save.eco]) for(const k in P.stars) n+=P.stars[k]; return n; }
+const UNLOCK={su:0,yag:15,tas:25,eco:35};
+const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5;
+function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function freeHints(){ if(!save.hints || save.hints.day!==today()) save.hints={day:today(),left:HINT_FREE+(save.noads?2:0)}; return save.hints.left; }
+if(typeof save.coins!=="number") save.coins=earned();
+function limitFor(w,n){ if(w!=="su" || n<5) return null; if(n<LEVELS.length) return 15; const k=n-LEVELS.length; return Math.min(4+Math.floor(k/4),11)+3+4; }
+
+let world="su", L, li, state, history, sel, selStone=-1, moves, hintUsed, wrongImp, limit=null, spent=0, measureMode=false, itemUsed=false;
+const prog=()=> ({su:save, yag:save.oil, tas:save.tas, eco:save.eco})[world];
+const WORLD_LEN={su:Infinity, yag:OIL.length, tas:TAS.length, eco:ECO.length};
+
+/* ---------- solver: state = {b:[[su, yağ], ...], s:[taş konumu, -1 = kenarda]} ---------- */
+const tot=b=>b[0]+b[1];
+const keyOf=st=>st.b.map(b=>b[0]+"."+b[1]).join(",")+"|"+st.s.join(",")+"|"+st.d;
+const clone=st=>({b:st.b.map(x=>x.slice()), s:st.s.slice(), d:st.d});
+function sv(st,lv,j){ let v=0; st.s.forEach((p,k)=>{ if(p===j) v+=lv.stones[k].v; }); return v; }
+function space(st,lv,j){ return lv.caps[j]-tot(st.b[j])-sv(st,lv,j); }
+function nextStates(st, lv){
+  const c=lv.caps, out=[];
+  for(let i=0;i<c.length;i++){
+    const ti=tot(st.b[i]);
+    if(lv.tap && space(st,lv,i)>0 && (lv.depot==null || space(st,lv,i)<=st.d)){ const n=clone(st), f=space(st,lv,i); n.b[i][0]+=f; if(lv.depot!=null) n.d-=f; out.push([n,{t:"fill",i}]); }
+    if(lv.sink && ti>0){ const n=clone(st); n.b[i]=[0,0]; out.push([n,{t:"empty",i}]); }
+    for(let j=0;j<c.length;j++){
+      const sp=space(st,lv,j);
+      if(i!==j && ti>0 && sp>0){
+        const m=Math.min(ti,sp), mo=Math.min(st.b[i][1],m), mw=m-mo;
+        const n=clone(st); n.b[i][0]-=mw; n.b[i][1]-=mo; n.b[j][0]+=mw; n.b[j][1]+=mo;
+        out.push([n,{t:"pour",i,j,mw,mo}]);
+      }
+    }
+  }
+  (lv.stones||[]).forEach((S,k)=>{
+    for(let d=-1;d<c.length;d++){
+      if(d===st.s[k]) continue;
+      const r=moveStone(st,lv,k,d); if(r) out.push([r.st,{t:"stone",k,d,spill:r.spill}]);
+    }
+  });
+  return out;
+}
+function moveStone(st,lv,k,d){
+  const n=clone(st); n.s[k]=d; let spill=0;
+  if(d>=0){
+    if(sv(n,lv,d)>lv.caps[d]) return null;
+    const over=tot(n.b[d])+sv(n,lv,d)-lv.caps[d];
+    if(over>0){ spill=over; const so=Math.min(n.b[d][1],over); n.b[d][1]-=so; n.b[d][0]-=over-so; }
+  }
+  return {st:n,spill};
+}
+function meets(b, lv){ return lv.oil ? (b[0]===lv.gw && b[1]===lv.go) : tot(b)===lv.target; }
+function goal(st, lv){ return st.b.some(b=>meets(b,lv)); }
+function solve(from, lv){
+  const seen=new Map([[keyOf(from),null]]); const q=[from];
+  while(q.length){
+    const a=q.shift();
+    if(goal(a,lv)){
+      const path=[]; let k=keyOf(a);
+      while(seen.get(k)){ const p=seen.get(k); path.unshift(p.mv); k=p.prev; }
+      return path;
+    }
+    for(const [b,mv] of nextStates(a,lv)){
+      const kb=keyOf(b); if(!seen.has(kb)){ seen.set(kb,{prev:keyOf(a),mv}); q.push(b); }
+    }
+  }
+  return null;
+}
+
+/* ---------- endless water generator (numeric) ---------- */
+function numNext(a, lv){
+  const c=lv.caps, out=[];
+  for(let i=0;i<c.length;i++){
+    if(lv.tap && a[i]<c[i]){ const b=a.slice(); b[i]=c[i]; out.push(b); }
+    if(lv.sink && a[i]>0){ const b=a.slice(); b[i]=0; out.push(b); }
+    for(let j=0;j<c.length;j++) if(i!==j && a[i]>0 && a[j]<c[j]){
+      const m=Math.min(a[i],c[j]-a[j]); const b=a.slice(); b[i]-=m; b[j]+=m; out.push(b);
+    }
+  }
+  return out;
+}
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const SUF={2:"nin",3:"ün",4:"ün",5:"in",6:"nın",7:"nin",8:"in",9:"un"};
+function joinTr(a){ return a.length<2 ? String(a[0]) : a.slice(0,-1).join(", ")+" ve "+a[a.length-1]; }
+function allDist(lv){
+  const key=a=>a.join(","); const seen=new Map([[key(lv.start),0]]); const q=[lv.start]; const best=new Map();
+  while(q.length){
+    const a=q.shift(); const d=seen.get(key(a));
+    for(const x of a) if(x>0 && !best.has(x)) best.set(x,d);
+    for(const b of numNext(a,lv)){ const kb=key(b); if(!seen.has(kb)){ seen.set(kb,d+1); q.push(b); } }
+  }
+  return best;
+}
+function gen(n){
+  const r=rng(n*9973+17); const ri=(a,b)=>a+Math.floor(r()*(b-a+1));
+  const k=n-LEVELS.length;
+  const impossible = k>=3 && r()<0.12;
+  let lo=Math.min(4+Math.floor(k/4),11), hi=lo+3;
+  for(let tries=0;tries<600;tries++){
+    if(tries%100===99 && lo>3) lo--;
+    const three = r() < Math.min(0.25+k*0.02,0.6);
+    const closed = three && r()<0.5;
+    let caps;
+    if(three){ const a=ri(8,Math.min(10+Math.floor(k/3),19)); caps=[a,ri(4,a-2),ri(2,a-4)]; }
+    else { const a=ri(3,Math.min(7+Math.floor(k/3),15)); caps=[a,ri(a+1,Math.min(a+9,17))]; }
+    if(new Set(caps).size<caps.length) continue;
+    const g=caps.reduce(gcd);
+    if(impossible){
+      if(closed || g===1 || !SUF[g]) continue;
+      const ch=[]; for(let t=1;t<Math.max(...caps);t++) if(t%g) ch.push(t);
+      const t=ch[ri(0,ch.length-1)];
+      return {caps,start:caps.map(()=>0),tap:true,sink:true,target:t,best:-1,
+        why:`Kovalar ${joinTr(caps)} litrelik; hepsi ${g}’${SUF[g]} katı. Doldurunca, boşalttığında ya da aktardığında kovalarda hep ${g}’${SUF[g]} katı kalır. ${t} litre bu yüzden imkânsız.`};
+    }
+    if(!closed && g!==1) continue;
+    const lv={caps,start:closed?[caps[0],0,0]:caps.map(()=>0),tap:!closed,sink:!closed};
+    let pick=null;
+    for(const [t,d] of allDist(lv)) if(d>=lo && d<=hi && (!pick || d>pick[1] || (d===pick[1] && t<pick[0]))) pick=[t,d];
+    if(pick){ lv.target=pick[0]; lv.best=pick[1]; return lv; }
+  }
+  return {caps:[3,5],start:[0,0],tap:true,sink:true,target:4,best:6};
+}
+const cache={su:{},yag:{},tas:{},eco:{}};
+function getLevel(w,n){
+  if(cache[w][n]) return cache[w][n];
+  let lv;
+  if(w==="yag") lv=OIL[n];
+  else if(w==="tas") lv=TAS[n];
+  else if(w==="eco") lv=ECO[n];
+  else { lv = n<LEVELS.length ? LEVELS[n] : gen(n); lv.start2 = {b:lv.start.map(x=>[x,0]), s:[]}; }
+  if(!lv.start2) lv.start2 = {b:lv.start.map(x=>x.slice()), s:(lv.stones||[]).map(()=>-1), d:lv.depot};
+  if(lv.best===undefined){ const p=solve(lv.start2,lv); lv.best=p?p.length:-1; }
+  return cache[w][n]=lv;
+}
+function goalText(lv){ return lv.oil ? (lv.go===0 ? `${lv.gw} litre saf su` : `${lv.gw} su ve ${lv.go} yağ`) : `${lv.target} litre`; }
+
+/* ---------- menu ---------- */
+let page=null; const PS=20;
+function renderMenu(){
+  const P=prog();
+  document.querySelectorAll(".seg button").forEach(b=>{
+    b.setAttribute("aria-pressed",b.dataset.w===world);
+    const lk=earned()<UNLOCK[b.dataset.w]; b.classList.toggle("locked",lk);
+    b.textContent=(lk?"🔒 ":"")+({su:"Su",yag:"Su ve yağ",tas:"Taş",eco:"Tasarruf"})[b.dataset.w];
+  });
+  $("wallet").innerHTML=`★ ${save.coins} <span>harcanabilir, toplam ${earned()} kazanıldı</span>`;
+  const total = WORLD_LEN[world];
+  const maxPage = world==="su" ? Math.floor(P.unlocked/PS) : 0;
+  if(page===null) page=maxPage;
+  page=Math.max(0,Math.min(page,maxPage));
+  $("pager").hidden = world!=="su";
+  $("pageLbl").textContent=`${page*PS+1}–${page*PS+PS}`;
+  $("prev").disabled=page===0; $("next").disabled=page>=maxPage;
+  const done = P.unlocked>=total;
+  $("cont").textContent = done ? "Hepsi çözüldü" : `Devam et: Seviye ${P.unlocked+1}`;
+  $("cont").disabled = done;
+  $("note").textContent = world==="yag"
+    ? "Yağ suyun üstünde durur ve dökerken önce o akar. Katmanların sırasını lehine kullan."
+    : world==="tas" ? "Taş yer kaplar: kovaya koyunca su yükselir, dolu kovada fazlası taşar. Arşimet’i lehine kullan."
+    : world==="eco" ? "Sürdürülebilirlik serisi: su dökmek yok, depodaki su sınırlı. En az suyla ölç."
+    : "İlk 10 seviye öğretici, sonrası sonsuz ve giderek zorlaşıyor. Bazı bulmacaların çözümü yok; fark eden kazanır.";
+  const g=$("grid"); g.innerHTML="";
+  const end = Math.min(page*PS+PS, total);
+  for(let i=page*PS;i<end;i++){
+    const b=document.createElement("button");
+    b.className="lv"+(i===P.unlocked?" cur":"");
+    const st=P.stars[i]||0;
+    b.innerHTML=`${i+1}<small>${"★".repeat(st)}</small>`;
+    b.setAttribute("aria-label",`Seviye ${i+1}${st?`, ${st} yıldız`:""}`);
+    if(i>P.unlocked){ b.disabled=true; }
+    else b.onclick=()=>start(i);
+    g.appendChild(b);
+  }
+}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  const need=UNLOCK[b.dataset.w];
+  if(earned()<need){ $("note").textContent=`Bu dünya toplam ${need} yıldızla açılır. Şu an ${earned()} yıldızın var.`; return; }
+  world=b.dataset.w; page=null; renderMenu();
+});
+$("prev").onclick=()=>{ page--; renderMenu(); };
+$("next").onclick=()=>{ page++; renderMenu(); };
+$("cont").onclick=()=>start(prog().unlocked);
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); }
+
+/* ---------- game ---------- */
+function start(i){
+  li=i; L=getLevel(world,i); state=clone(L.start2); history=[]; sel=-1; selStone=-1; moves=0; hintUsed=false; wrongImp=false; limit=limitFor(world,i); spent=0; measureMode=false; itemUsed=false;
+  $("lvTitle").textContent = world==="yag" ? `Su ve yağ ${i+1}` : world==="tas" ? `Taş ${i+1}` : world==="eco" ? `Tasarruf ${i+1}` : `Seviye ${i+1}`;
+  if(L.oil){
+    $("goal").textContent = L.go===0 ? `${L.gw} L su` : `${L.gw} su + ${L.go} yağ`;
+    $("goalSub").textContent = L.go===0 ? "saf, tek kovada" : "aynı kovada";
+  } else { $("goal").textContent=`${L.target} L`; $("goalSub").textContent="herhangi bir kovada"; }
+  $("intro").textContent=L.intro||"";
+  $("imp").hidden = world!=="su" || i<IMP_FROM;
+  buildStage(); say(toolsText()); update(); show("game");
+}
+function toolsText(){
+  if(L.tap&&L.sink) return "Musluk ve lavabo serbest.";
+  if(L.tap) return "Musluk var, lavabo yok.";
+  if(L.sink) return "Lavabo var, musluk yok.";
+  return "Sadece kovalar arası aktarma.";
+}
+function buildStage(){
+  const st=$("stage"); st.innerHTML="";
+  const max=Math.max(...L.caps), n=L.caps.length;
+  const avail=Math.min(window.innerHeight*0.28,230);
+  st.classList.toggle("has-tools",L.tap||L.sink);
+  const unit=Math.min(avail/max,34);
+  const w=Math.min(110,(Math.min(window.innerWidth,560)-40-(n-1)*24)/n);
+  L.caps.forEach((c,i)=>{
+    const col=document.createElement("div"); col.className="col";
+    const b=document.createElement("button");
+    b.className="bucket"; b.dataset.i=i;
+    b.innerHTML=`<div class="vol"></div>
+      <div class="body" style="--w:${w*(0.75+0.25*Math.sqrt(c/max))}px;--h:${c*unit+10}px;--u:${unit}px">
+        <div class="handle"></div><div class="shell"></div>
+        <div class="inner"><div class="stones"></div><div class="water"></div><div class="oil"></div><div class="ticks"></div></div>
+        <div class="rim"></div></div>
+      <div class="cap"></div>`;
+    b.onclick=()=>tapBucket(i);
+    const mini=document.createElement("div"); mini.className="mini";
+    mini.innerHTML=`<button class="btn fill" hidden>Doldur</button><button class="btn" hidden>Boşalt</button>`;
+    mini.children[0].onclick=()=>fillB(i);
+    mini.children[1].onclick=()=>emptyB(i);
+    col.append(b,mini);
+    st.appendChild(col);
+  });
+  const tray=$("tray"); tray.innerHTML="";
+  tray.hidden = !(L.stones && L.stones.length);
+  (L.stones||[]).forEach((S,k)=>{
+    const t=document.createElement("button"); t.className="rock"; t.style.setProperty("--v",S.v);
+    t.onclick=()=>tapStone(k); tray.appendChild(t);
+  });
+  const out=document.createElement("button"); out.className="btn"; out.id="toSide"; out.textContent="Kenara koy"; out.hidden=true;
+  out.onclick=()=>{ if(selStone>=0) doStone(selStone,-1); };
+  tray.appendChild(out);
+}
+function update(){
+  document.querySelectorAll(".bucket").forEach((b,i)=>{
+    const [w,o]=state.b[i], c=L.caps[i], s=sv(state,L,i);
+    const stn=b.querySelector(".stones"); stn.style.height=(s/c*100)+"%";
+    stn.innerHTML=(L.stones||[]).map((S,k)=>state.s[k]===i?`<span style="flex:${S.v}"></span>`:"").join("");
+    const wa=b.querySelector(".water"); wa.style.bottom=(s/c*100)+"%"; wa.style.height=(w/c*100)+"%";
+    const oil=b.querySelector(".oil"); oil.style.bottom=((s+w)/c*100)+"%"; oil.style.height=(o/c*100)+"%";
+    b.querySelector(".vol").innerHTML=`${w+o+s}<span> / ${c}</span>`;
+    b.querySelector(".cap").textContent = L.oil ? (w+o===0 ? "boş" : `${w} su, ${o} yağ`) : (s ? `${w} L su, ${s} L taş` : `${c} litrelik`);
+    b.classList.toggle("sel",i===sel);
+    b.classList.toggle("hit",meets(state.b[i],L));
+    b.setAttribute("aria-label",`${c} litrelik kova, içinde ${w} litre su${L.oil?` ve ${o} litre yağ`:""}${i===sel?", seçili":""}`);
+  });
+  const showPar = L.best>0 && (world!=="su" || (prog().stars[li]||0)>0);
+  const base = limit ? `${moves} / ${limit} hamle` : `${moves} hamle`;
+  $("moves").textContent = showPar ? `${base}, en iyisi ${L.best}` : base;
+  const fh=freeHints();
+  $("hint").textContent = fh>0 ? `İpucu (${fh})` : `İpucu (${HINT_COST} ★)`;
+  document.querySelectorAll(".mini").forEach((m,i)=>{
+    const sp=space(state,L,i), short = L.depot!=null && sp>state.d;
+    m.children[0].hidden = !(i===sel && L.tap && sp>0);
+    m.children[0].disabled = short;
+    m.children[0].textContent = short ? `Doldur (${sp} L lazım)` : "Doldur";
+    m.children[1].hidden = !(i===sel && L.sink && tot(state.b[i])>0);
+  });
+  document.querySelectorAll(".rock").forEach((r,k)=>{
+    const p=state.s[k]; r.classList.toggle("sel",k===selStone);
+    r.innerHTML=`${L.stones[k].v} L taş<small>${p<0?"kenarda":`${L.caps[p]} L kovada`}</small>`;
+    r.setAttribute("aria-label",`${L.stones[k].v} litrelik taş, ${p<0?"kenarda":`${L.caps[p]} litrelik kovada`}${k===selStone?", seçili":""}`);
+  });
+  const ts=$("toSide"); if(ts) ts.hidden = !(selStone>=0 && state.s[selStone]>=0);
+  $("depot").hidden = L.depot==null;
+  if(L.depot!=null) $("depot").textContent=`Depoda kalan su: ${state.d} L`;
+  const ms=$("measure");
+  ms.textContent = itemUsed ? "Ölçülü döküm kullanıldı" : measureMode ? "Ölçülü dökümü iptal et" : `Ölçülü dök: tam 1 L (${MEASURE_COST} ★, en fazla 1 yıldız)`;
+  ms.disabled = itemUsed; ms.classList.toggle("on",measureMode);
+  $("undo").disabled = !history.length;
+}
+function say(t){ $("msg").textContent=t; }
+
+function tapStone(k){
+  sel=-1;
+  if(selStone===k){ selStone=-1; say(""); }
+  else { selStone=k; say(state.s[k]>=0 ? "Taşı koymak için başka bir kovaya dokun ya da kenara koy." : "Taşı koymak için bir kovaya dokun."); }
+  update();
+}
+function doStone(k,d){
+  const r=moveStone(state,L,k,d);
+  if(!r){ say(`Taş ${L.caps[d]} litrelik kovaya sığmıyor.`); return; }
+  const v=L.stones[k].v;
+  let text = d<0 ? `${v} litrelik taş kenara kondu.` : `${v} litrelik taş ${L.caps[d]} litrelik kovaya kondu.`;
+  if(r.spill) text+=` ${r.spill} litre taştı.`;
+  selStone=-1;
+  apply(()=>{ state=r.st; }, text);
+}
+function tapBucket(i){
+  if(selStone>=0){ if(state.s[selStone]===i){ selStone=-1; say(""); update(); return; } doStone(selStone,i); return; }
+  if(sel===-1){
+    if(tot(state.b[i])===0 && !L.tap){ say("Bu kova boş, önce içinde sıvı olan bir kova seç."); return; }
+    sel=i; say(L.tap||L.sink ? "Aktarmak için başka bir kovaya dokun ya da kovanın altındaki butonu kullan." : "Aktarmak için başka bir kovaya dokun.");
+  } else if(sel===i){ sel=-1; say(""); }
+  else {
+    const from=sel, a=state.b[from], ta=tot(a), sp=space(state,L,i);
+    if(ta===0){ sel=i; say("O kova boştu; bu kovayı seçtim."); update(); return; }
+    if(sp<=0){ say(`${L.caps[i]} litrelik kova zaten dolu.`); return; }
+    const meas=measureMode;
+    if(meas){ if(limit && moves>=limit){ outOfMoves(); return; } save.coins-=MEASURE_COST; persist(); itemUsed=true; measureMode=false; }
+    const m=meas?1:Math.min(ta,sp), mo=Math.min(a[1],m), mw=m-mo;
+    const el=document.querySelectorAll(".bucket")[from];
+    el.classList.add("pour"); if(i<from) el.classList.add("r");
+    setTimeout(()=>el.classList.remove("pour","r"),380);
+    const parts=[]; if(mo) parts.push(`${mo} litre yağ`); if(mw) parts.push(`${mw} litre su`);
+    apply(()=>{ state.b[from][0]-=mw; state.b[from][1]-=mo; state.b[i][0]+=mw; state.b[i][1]+=mo; },
+      L.oil ? `${parts.join(" ve ")} aktarıldı.` : `${m} litre aktarıldı.`);
+    return;
+  }
+  update();
+}
+function apply(fn,text){
+  if(limit && moves>=limit){ outOfMoves(); return; }
+  history.push(clone(state)); fn(); moves++; sel=-1; selStone=-1; say(text); update(); check();
+}
+function fillB(i){ const f=space(state,L,i); apply(()=>{ state.b[i][0]+=f; if(L.depot!=null) state.d-=f; },`${L.caps[i]} litrelik kova musluktan dolduruldu.`); }
+$("measure").onclick=()=>{
+  if(itemUsed) return;
+  if(measureMode){ measureMode=false; say("Ölçülü döküm iptal edildi."); update(); return; }
+  if(save.coins<MEASURE_COST){ say(`Ölçülü döküm için ${MEASURE_COST} yıldız gerekiyor. Yıldızın: ${save.coins}.`); return; }
+  measureMode=true; sel=-1; selStone=-1; say("Kaynak kovaya, sonra hedef kovaya dokun: tam 1 litre aktarılır. Yıldız döküm anında düşer."); update();
+};
+function emptyB(i){ apply(()=>{ state.b[i]=[0,0]; },`${L.caps[i]} litrelik kova lavaboya boşaltıldı.`); }
+$("undo").onclick=()=>{ if(!history.length) return; if(limit && moves>=limit){ outOfMoves(); return; } state=history.pop(); moves++; sel=-1; selStone=-1; say("Son hamle geri alındı. Geri almak da hamle sayılır."); update(); };
+$("reset").onclick=()=>start(li);
+$("back").onclick=()=>{ renderMenu(); show("menu"); };
+$("hint").onclick=()=>{
+  if(freeHints()>0) save.hints.left--;
+  else if(save.coins>=HINT_COST) save.coins-=HINT_COST;
+  else { say(`İpucu için ${HINT_COST} yıldız gerekiyor. Her gün ${HINT_FREE} ücretsiz ipucu yenilenir; mağazadan da yıldız alabilirsin.`); return; }
+  persist();
+  hintUsed=true; update();
+  const p=solve(state,L);
+  if(!p){ say(L.why ? "Buradan hiçbir yol hedefe gitmiyor. Belki de sorun bu bulmacanın kendisinde?" : "Buradan hedefe yol yok. Baştan başlamayı ya da geri almayı dene."); return; }
+  const m=p[0];
+  sel=-1; selStone=-1; update();
+  if(m.t==="fill") say(`İpucu: ${L.caps[m.i]} litrelik kovayı musluktan doldur. (${p.length} hamle kaldı)`);
+  else if(m.t==="empty") say(`İpucu: ${L.caps[m.i]} litrelik kovayı lavaboya dök. (${p.length} hamle kaldı)`);
+  else if(m.t==="stone") say(`İpucu: ${L.stones[m.k].v} litrelik taşı ${m.d<0?"kenara koy":`${L.caps[m.d]} litrelik kovaya koy`}. (${p.length} hamle kaldı)`);
+  else say(`İpucu: ${L.caps[m.i]} litrelikten ${L.caps[m.j]} litreliğe aktar. (${p.length} hamle kaldı)`);
+};
+$("imp").onclick=()=>{
+  if(L.best===-1){ finish(true); }
+  else { wrongImp=true; say("Bu bulmacanın çözümü var. Denemeye devam; bu seviyede en fazla 2 yıldız alabilirsin."); }
+};
+
+function check(){
+  if(goal(state,L)) setTimeout(()=>finish(false),500);
+  else if(limit && moves>=limit) setTimeout(outOfMoves,450);
+  else if(world!=="su" && !solve(state,L)) setTimeout(()=>say("Bu durumdan hedefe giden yol kalmadı. Geri al ya da baştan başla."),0);
+}
+function outOfMoves(){
+  $("ov2Text").textContent=`${limit} hamlelik limit doldu. ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilir ya da baştan başlayabilirsin. Yıldızın: ${save.coins}.`;
+  $("buyMoves").disabled = save.coins<MOVE_COST;
+  $("imp2").hidden = $("imp").hidden;
+  $("ov2").classList.add("on");
+}
+$("buyMoves").onclick=()=>{ if(save.coins<MOVE_COST) return; save.coins-=MOVE_COST; spent+=MOVE_COST; limit+=MOVE_PACK; persist(); $("ov2").classList.remove("on"); say(`${MOVE_PACK} hamle eklendi.`); update(); };
+$("imp2").onclick=()=>{ $("ov2").classList.remove("on"); $("imp").onclick(); };
+$("restart2").onclick=()=>{ $("ov2").classList.remove("on"); start(li); };
+$("menu2").onclick=()=>{ $("ov2").classList.remove("on"); renderMenu(); show("menu"); };
+$("shop2").onclick=()=>{ $("ov2").classList.remove("on"); renderShop(); $("shop").classList.add("on"); };
+const PACKS=[
+  {name:"Reklam izle",desc:"+3 ★, günde 5 kez",price:"Ücretsiz",stars:3,ad:true},
+  {name:"Başlangıç paketi",desc:"100 ★, sadece bir kez",price:"₺19,99",stars:100,once:true,tag:"Tek seferlik"},
+  {name:"Avuç dolusu",desc:"60 ★",price:"₺24,99",stars:60},
+  {name:"Kova dolusu",desc:"180 ★, %25 bonus",price:"₺59,99",stars:180,tag:"En popüler"},
+  {name:"Depo dolusu",desc:"500 ★, %50 bonus",price:"₺139,99",stars:500,tag:"En avantajlı"},
+  {name:"Usta paketi",desc:"Ömür boyu: her gün +2 ücretsiz ipucu ve reklam izlemeden +5 ★ hediye",price:"₺149,99",stars:0,noads:true,tag:"Kalıcı"}
+];
+function renderShop(){
+  if(!save.ads || save.ads.day!==today()) save.ads={day:today(),left:5};
+  const box=$("packs"); box.innerHTML="";
+  if(save.noads){
+    const row=document.createElement("div"); row.className="pack";
+    const got=save.gift===today();
+    row.innerHTML=`<div><b>Usta hediyesi</b><em>Usta</em><span>${got?"Bugünkü alındı, yarın yenilenir":"+5 ★, her gün bir kez"}</span></div>`;
+    const b=document.createElement("button"); b.className="btn main"; b.textContent="Al"; b.disabled=got;
+    b.onclick=()=>{ save.gift=today(); save.coins+=5; persist(); renderShop(); refreshAll(); };
+    row.appendChild(b); box.appendChild(row);
+  }
+  PACKS.forEach(p=>{
+    if((p.once && save.starter) || (p.noads && save.noads)) return;
+    const row=document.createElement("div"); row.className="pack";
+    row.innerHTML=`<div><b>${p.name}</b>${p.tag?`<em>${p.tag}</em>`:""}<span>${p.desc}${p.ad?`, bugün ${save.ads.left} hak kaldı`:""}</span></div>`;
+    const b=document.createElement("button"); b.className="btn main"; b.textContent=p.price;
+    if(p.ad && save.ads.left<=0) b.disabled=true;
+    b.onclick=()=>buy(p,b);
+    row.appendChild(b); box.appendChild(row);
+  });
+  $("shopNote").textContent=`Yıldızın: ${save.coins}. Prototip: gerçek ödeme alınmaz, butonlar yıldızı doğrudan ekler.`;
+}
+function buy(p,b){
+  if(p.ad){
+    b.disabled=true; let s=3; b.textContent=`Reklam ${s}`;
+    const t=setInterval(()=>{ s--; if(s>0) b.textContent=`Reklam ${s}`; else { clearInterval(t); save.ads.left--; save.coins+=p.stars; persist(); renderShop(); refreshAll(); } },1000);
+    return;
+  }
+  save.coins+=p.stars;
+  if(p.once) save.starter=true;
+  if(p.noads){ save.noads=true; if(save.hints && save.hints.day===today()) save.hints.left+=2; }
+  persist(); renderShop(); refreshAll();
+}
+function refreshAll(){ if($("menu").classList.contains("on")) renderMenu(); else if(L) update(); }
+$("openShop").onclick=()=>{ renderShop(); $("shop").classList.add("on"); };
+$("closeShop").onclick=()=>{ $("shop").classList.remove("on"); refreshAll(); };
+function finish(impossible){
+  const P=prog();
+  let stars, text;
+  if(impossible){
+    stars = 3;
+    $("ovTitle").textContent="Doğru tespit!";
+    text=L.why;
+  } else {
+    stars = moves<=L.best ? 3 : moves<=L.best+3 ? 2 : 1;
+    $("ovTitle").textContent="Oldu!";
+    text = moves<=L.best ? `${moves} hamlede ${goalText(L)}. Bundan kısası yok.` : `${moves} hamlede ${goalText(L)}. En kısa çözüm ${L.best} hamle.`;
+  }
+  if(hintUsed||wrongImp||itemUsed) stars=Math.min(stars,2);
+  if(itemUsed && !impossible){ stars=1; text=`Ölçülü dökümle ${moves} hamlede ${goalText(L)}. Jokersiz en kısa çözüm ${L.best} hamle; tekrar deneyip yıldızları toplayabilirsin.`; }
+  const prev=P.stars[li]||0;
+  if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
+  if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
+  P.unlocked=Math.max(P.unlocked,li+1);
+  persist();
+  $("ovStars").innerHTML="★".repeat(stars)+`<span class="off">${"★".repeat(3-stars)}</span>`;
+  $("ovText").textContent=text;
+  const last = li>=WORLD_LEN[world]-1;
+  $("ovNext").textContent= last ? "Bitti, seviyelere dön" : "Sonraki seviye";
+  $("ov").classList.add("on");
+}
+$("ovNext").onclick=()=>{ $("ov").classList.remove("on"); if(li>=WORLD_LEN[world]-1){ renderMenu(); show("menu"); } else start(li+1); };
+$("ovMenu").onclick=()=>{ $("ov").classList.remove("on"); renderMenu(); show("menu"); };
+window.addEventListener("resize",()=>{ if($("game").classList.contains("on")){ buildStage(); update(); } });
+
+renderMenu();
+function openFromHash(){
+  const m=location.hash.match(/^#(seviye|yag|tas|tasarruf)-(\d+)$/);
+  if(!m) return;
+  world = m[1]==="seviye" ? "su" : m[1]==="tasarruf" ? "eco" : m[1];
+  let n=Math.max(1,parseInt(m[2],10))-1;
+  n=Math.min(n,WORLD_LEN[world]-1);
+  const P=prog(); P.unlocked=Math.max(P.unlocked,n); persist();
+  page=null; renderMenu(); $("ov").classList.remove("on"); start(n);
+}
+openFromHash();
+window.addEventListener("hashchange",openFromHash);
+</script>
+</body>
+</html>
