@@ -816,7 +816,13 @@ function finish(impossible){
   const raw=stars;
   if(hintUsed||wrongImp||itemUsed) stars=Math.min(stars,2);
   if(itemUsed && !impossible){ stars=1; text=`Ölçülü dökümle ${moves} hamlede ${goalText(L)}. Jokersiz en kısa çözüm ${L.best} hamle; tekrar deneyip yıldızları toplayabilirsin.`; }
-  else if(raw>stars) text+=` ${hintUsed&&wrongImp ? "İpucu ve yanlış imkânsız tespiti yüzünden" : hintUsed ? "İpucu kullandığın için" : "Yanlış imkânsız tespiti yüzünden"} en fazla 2 yıldız.`;
+  const cap = wrongImp ? 2 : 3;
+  if(!impossible && !itemUsed){
+    if(stars<cap){
+      const todo=[]; if(hintUsed) todo.push("ipucusuz"); if(moves>L.best) todo.push("daha kısa yoldan");
+      const t=todo.join(" ve "); text+=` ${t.charAt(0)==="i" ? "İ"+t.slice(1) : t.charAt(0).toUpperCase()+t.slice(1)} çözersen ${cap} yıldız.`;
+    } else if(cap<3) text+=" Yanlış imkânsız tespiti yüzünden bu seviyede en fazla 2 yıldız alınabilir.";
+  }
   const prev=P.stars[li]||0;
   if(stars>prev){ save.coins+=stars-prev; P.stars[li]=stars; }
   if(impossible && spent){ save.coins+=spent; text+=` Ek hamleye harcadığın ${spent} yıldız iade edildi.`; spent=0; }
@@ -830,7 +836,7 @@ function finish(impossible){
   $("ovText").textContent=text;
   const last = li>=WORLD_LEN[world]-1;
   $("ovNext").textContent= last ? "Bitti, seviyelere dön" : "Sonraki seviye";
-  $("ovRetry").hidden = stars>=3;
+  $("ovRetry").hidden = stars>=(wrongImp ? 2 : 3);
   $("ov").classList.add("on");
 }
 $("ovRetry").onclick=()=>afterFinish(()=>start(li));
