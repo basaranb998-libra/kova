@@ -11,7 +11,9 @@ Su aktarma bulmacası. Tek dosyalık, bağımlılıksız bir web prototipi (`ind
 ## Ekonomi
 - Yıldızlar hem ilerleme hem para birimi. Bir seviyede sadece önceki en iyi sonuca göre fark kazanılır.
 - İpucu: günde 3 ücretsiz, sonrası 2 ★.
-- Hamle limiti dolunca: +5 hamle (3 ★), baştan başla ya da "Bu imkânsız".
+- Hamle limiti dolunca: baştan başla ya da "Bu imkânsız". 16. seviyeden itibaren ayrıca +5 hamle (3 ★) satın alınabilir.
+- Son hamleye gelince uyarı çıkar. Yanlış "Bu imkânsız" tespiti 1 hamle sayılır ve seviyeyi en fazla 2 yıldıza düşürür.
+- İpucu alınamıyorsa (ücretsiz hak bitti, yıldız yok) oyun içinden mağaza açılır.
 - Ölçülü döküm jokeri: toplam 10 yıldızla açılır. Tam 1 L aktarım, 5 ★, seviye başına tek kullanım, en fazla 1 yıldız.
 - Oyun ekranındaki yıldız çubuğu harcanabilir ve toplam yıldızı, bu seviyedeki en iyi sonucu ve bir sonraki açılışa (joker ya da dünya) kaç yıldız kaldığını gösterir; çubuğa dokununca mağaza açılır.
 - İmkânsız seviyede ek hamleye harcanan yıldızlar doğru tespitte iade edilir.

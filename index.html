@@ -67,6 +67,8 @@ button:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
 .title{flex:1;min-width:0}
 .title b{display:block;font-size:1.25rem;line-height:1.1}
 .title span{color:var(--muted);font-size:.95rem}
+.title span.warn{color:var(--red);font-weight:700}
+.msg.warn{color:var(--red);font-weight:600}
 .goal{background:var(--cobalt);color:var(--surface);border-radius:14px;padding:6px 12px;text-align:center;line-height:1.05;flex:none}
 .goal b{display:block;font-size:1.5rem}
 .goal span{font-size:.75rem}
@@ -305,7 +307,7 @@ try{ const s = JSON.parse(localStorage.getItem("kova-save")||"null"); if(s && ty
 function persist(){ try{ localStorage.setItem("kova-save", JSON.stringify(save)); }catch(e){} }
 function earned(){ let n=0; for(const P of [save,save.oil,save.tas,save.eco]) for(const k in P.stars) n+=P.stars[k]; return n; }
 const UNLOCK={su:0,yag:15,tas:25,eco:35};
-const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10;
+const HINT_FREE=3, HINT_COST=2, MOVE_COST=3, MOVE_PACK=5, MEASURE_COST=5, MEASURE_UNLOCK=10, MOVES_FROM=15;
 const GOALS=[{need:MEASURE_UNLOCK,name:"Ölçülü döküm jokeri"},{need:UNLOCK.yag,name:"Su ve yağ dünyası"},{need:UNLOCK.tas,name:"Taş dünyası"},{need:UNLOCK.eco,name:"Tasarruf dünyası"}];
 function nextUnlock(e){ return GOALS.find(g=>e<g.need)||null; }
 function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
@@ -558,6 +560,7 @@ function update(){
   const showPar = L.best>0 && (world!=="su" || (prog().stars[li]||0)>0);
   const base = limit ? `${moves} / ${limit} hamle` : `${moves} hamle`;
   $("moves").textContent = showPar ? `${base}, en iyisi ${L.best}` : base;
+  $("moves").classList.toggle("warn", !!limit && moves>=limit-1);
   const fh=freeHints();
   $("hint").textContent = fh>0 ? `İpucu (${fh})` : `İpucu (${HINT_COST} ★)`;
   document.querySelectorAll(".mini").forEach((m,i)=>{
@@ -584,7 +587,7 @@ function update(){
   ms.disabled = itemUsed || mlock; ms.classList.toggle("on",measureMode);
   $("undo").disabled = !history.length;
 }
-function say(t){ $("msg").textContent=t; }
+function say(t){ $("msg").textContent=t; $("msg").classList.remove("warn"); }
 function renderHud(){
   const e=earned(), nx=nextUnlock(e), cur=prog().stars[li]||0;
   $("hudWallet").innerHTML=`<b>★ ${save.coins}</b><span>harcanabilir · toplam ${e} kazanıldı</span>`;
@@ -634,7 +637,13 @@ function tapBucket(i){
 }
 function apply(fn,text){
   if(limit && moves>=limit){ outOfMoves(); return; }
-  history.push(clone(state)); fn(); moves++; sel=-1; selStone=-1; say(text); update(); check();
+  history.push(clone(state)); fn(); moves++; sel=-1; selStone=-1; say(text); lastMoveWarn(); update(); check();
+}
+function lastMoveWarn(){
+  if(!(limit && moves===limit-1) || goal(state,L)) return;
+  const imp=!$("imp").hidden;
+  say(`${$("msg").textContent} Son 1 hamlen kaldı. ${imp ? "Çözümü yok diyorsan “Bu imkânsız” de; o da bir hamle sayılır." : "İyi düşün."}`);
+  $("msg").classList.add("warn");
 }
 function fillB(i){ const f=space(state,L,i); apply(()=>{ state.b[i][0]+=f; if(L.depot!=null) state.d-=f; },`${L.caps[i]} litrelik kova musluktan dolduruldu.`); }
 $("measure").onclick=()=>{
@@ -651,7 +660,7 @@ $("back").onclick=()=>{ renderMenu(); show("menu"); };
 $("hint").onclick=()=>{
   if(freeHints()>0) save.hints.left--;
   else if(save.coins>=HINT_COST) save.coins-=HINT_COST;
-  else { say(`İpucu için ${HINT_COST} yıldız gerekiyor. Her gün ${HINT_FREE} ücretsiz ipucu yenilenir; mağazadan da yıldız alabilirsin.`); return; }
+  else { renderShop(`Bugünkü ${HINT_FREE} ücretsiz ipucun bitti, sonraki ipucu ${HINT_COST} ★. Reklam izleyerek ya da paket alarak yıldız kazanabilirsin.`); $("shop").classList.add("on"); return; }
   persist();
   hintUsed=true; update();
   const p=solve(state,L);
@@ -665,7 +674,12 @@ $("hint").onclick=()=>{
 };
 $("imp").onclick=()=>{
   if(L.best===-1){ finish(true); }
-  else { wrongImp=true; say("Bu bulmacanın çözümü var. Denemeye devam; bu seviyede en fazla 2 yıldız alabilirsin."); }
+  else {
+    wrongImp=true; moves++; sel=-1; selStone=-1;
+    say("Bu bulmacanın çözümü var. Yanlış tespit 1 hamle saydı; bu seviyede en fazla 2 yıldız alabilirsin.");
+    update();
+    if(limit && moves>=limit) setTimeout(outOfMoves,450); else lastMoveWarn();
+  }
 };
 
 function check(){
@@ -674,9 +688,12 @@ function check(){
   else if(world!=="su" && !solve(state,L)) setTimeout(()=>say("Bu durumdan hedefe giden yol kalmadı. Geri al ya da baştan başla."),0);
 }
 function outOfMoves(){
-  const can = save.coins>=MOVE_COST;
-  $("ov2Text").textContent=`${limit} hamlelik limit doldu. ${MOVE_COST} yıldıza ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilirsin. `+
-    (can ? `Yıldızın: ${save.coins}.` : `Yıldızın ${save.coins}, yetmiyor; "Yıldız al" ile mağazadan alıp buraya dönebilirsin.`);
+  const can = save.coins>=MOVE_COST, sell = world==="su" && li>=MOVES_FROM;
+  $("buyMoves").hidden = !sell; $("shop2").hidden = !sell;
+  $("ov2Text").textContent = !sell
+    ? `${limit} hamlelik limit doldu. Baştan başla${$("imp").hidden ? "." : " ya da çözümü yok diyorsan “Bu imkânsız” de."}`
+    : `${limit} hamlelik limit doldu. ${MOVE_COST} yıldıza ${MOVE_PACK} hamle daha alıp kaldığın yerden devam edebilirsin. `+
+      (can ? `Yıldızın: ${save.coins}.` : `Yıldızın ${save.coins}, yetmiyor; "Yıldız al" ile mağazadan alıp buraya dönebilirsin.`);
   $("buyMoves").disabled = !can;
   $("imp2").hidden = $("imp").hidden;
   $("ov2").classList.add("on");
@@ -694,7 +711,7 @@ const PACKS=[
   {name:"Depo dolusu",desc:"500 ★, %50 bonus",price:"₺139,99",stars:500,tag:"En avantajlı"},
   {name:"Usta paketi",desc:"Ömür boyu: her gün +2 ücretsiz ipucu ve reklam izlemeden +5 ★ hediye",price:"₺149,99",stars:0,noads:true,tag:"Kalıcı"}
 ];
-function renderShop(){
+function renderShop(reason){
   if(!save.ads || save.ads.day!==today()) save.ads={day:today(),left:5};
   const box=$("packs"); box.innerHTML="";
   if(save.noads){
@@ -714,7 +731,7 @@ function renderShop(){
     b.onclick=()=>buy(p,b);
     row.appendChild(b); box.appendChild(row);
   });
-  $("shopNote").textContent=`Yıldızın: ${save.coins}. Prototip: gerçek ödeme alınmaz, butonlar yıldızı doğrudan ekler.`;
+  $("shopNote").textContent=`${reason ? reason+" " : ""}Yıldızın: ${save.coins}. Prototip: gerçek ödeme alınmaz, butonlar yıldızı doğrudan ekler.`;
 }
 function buy(p,b){
   if(p.ad){
